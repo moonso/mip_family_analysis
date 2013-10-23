@@ -11,8 +11,8 @@ Copyright (c) 2013 __MyCompanyName__. All rights reserved.
 
 import sys
 import os
-from Family_Analysis import individual
-from Family_Analysis.variants import genotype
+from Mip_Family_Analysis.Family import individual
+from Mip_Family_Analysis.Variants import genotype
 
 
 class TestIndividual(object):

@@ -25,7 +25,7 @@ Copyright (c) 2013 __MyCompanyName__. All rights reserved.
 
 import sys
 import os
-from Family_Analysis.utils import family_parser
+from Mip_Family_Analysis.Family import family_parser
 
 class TestFamilyParser(object):
     """Test class for testing how the get_variant functions behave."""

@@ -11,8 +11,8 @@ Copyright (c) 2013 __MyCompanyName__. All rights reserved.
 
 import sys
 import os
-from Family_Analysis import family,individual
-from Family_Analysis.variants import genetic_variant, genotype
+from Mip_Family_Analysis.Family import family,individual
+from Mip_Family_Analysis.Variants import genetic_variant, genotype
 
 
 

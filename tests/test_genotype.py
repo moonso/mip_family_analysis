@@ -26,7 +26,7 @@ Copyright (c) 2013 __MyCompanyName__. All rights reserved.
 
 import sys
 import os
-from Family_Analysis.variants import genotype
+from Mip_Family_Analysis.Variants import genotype
 
 def test_nocall():
 	"""A nocall is when no informations is found on this position for the individual. It should be False on all questions except nocall. Also in the case of haploidity the result should be the same."""
