@@ -13,7 +13,7 @@ import sys
 import os
 import argparse
 from Mip_Family_Analysis.Family import family_parser
-from Mip_Family_Analysis.variants import variant_parser
+from Mip_Family_Analysis.Variants import variant_parser
 from Mip_Family_Analysis.Models import genetic_models, score_variants
 
 
@@ -33,6 +33,8 @@ def main():
     family_file = args.family_file[0]
         
     my_family_parser = family_parser.FamilyParser(family_file, family_type)
+    
+    preferred_models = my_family_parser.preferred_models
     
     # Stupid thing but for now when we only look at one family
     my_family = my_family_parser.families.popitem()[1]
@@ -62,14 +64,20 @@ def main():
         for variant in my_variant_parser.individuals[individual]:
             genotype = my_variant_parser.individuals[individual][variant]
             my_family.individuals[individual].add_genotype(variant, genotype)
-        
+    
+    # Check the genetic models
     my_models = genetic_models.genetic_models(my_family)
         
+    
+    # Score the variants
+    
+    for variant in my_family.variants:
+        score_variants.score_variant(my_family.variants[variant], preferred_models)
+    
     print '\t'.join(new_headers)
     
     for variant in my_family.variants:
-        if 'Na' not in my_family.variants[variant].models:
-            print '\t'.join(my_family.variants[variant].get_cmms_variant())
+        print '\t'.join(my_family.variants[variant].get_cmms_variant())
     
     #     for individual in my_family.individuals:
     #         print individual, my_family.individuals[individual].genotypes[variant]

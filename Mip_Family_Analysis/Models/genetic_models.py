@@ -64,22 +64,23 @@ class genetic_models(object):
         super(genetic_models, self).__init__()
         #Dictionary with <Gene ID> : [variant_id_1, variant_id_2, ...] for controlling the compound heterozygotes
         self.gene_variants = {}
+       
         #Object with individuals and variants: 
         self.family = family_object
-        print 'Variants:', self.family.variants
+       
         #These are the genes with to many variants:
         genes_with_many_variants = []
+       
         # For each variant in the family:
         for variant_id in self.family.variants:
                         
             # Only check X-linked for the variants in the X-chromosome:
             if self.family.variants[variant_id].chr == 'X':
                 self.check_x_linked(variant_id)
-            
             else:
-                # Check the dominant model:
+            # Check the dominant model:
                 self.check_dominant(variant_id)
-                # Check the recessive model:
+            # Check the recessive model:
                 self.check_recessive(variant_id)
             
             # Prepare for compounds by adding all variants for each gene:
@@ -99,7 +100,6 @@ class genetic_models(object):
                     self.check_compound(gene_id, self.gene_variants[gene_id])
                 else:
                     genes_with_many_variants.append(gene_id)
-        print 'Genes with more than', max_variants, 'variants: ', len(genes_with_many_variants) 
         for variant_id in self.family.variants:
             if len(self.family.variants[variant_id].ar_comp_genes) == 0:
                 self.family.variants[variant_id].ar_comp = False

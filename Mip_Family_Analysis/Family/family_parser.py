@@ -39,6 +39,7 @@ class FamilyParser(object):
         super(FamilyParser, self).__init__()
         self.family_type = family_type
         self.families = {}
+        self.preferred_models = []
         with open(infile, 'r') as f:
             line_count = 0
             for line in f:
@@ -73,44 +74,6 @@ class FamilyParser(object):
         phenotype = line[5]
         my_individual = individual.Individual(ind, fam_id, mother, father, sex, phenotype)
         self.families[my_individual.family].add_individual(my_individual)
-    
-    def broad_parser(self, individual_line, line_count):
-        """Parse a broad style .txt family file."""
-        
-        def parse_entry(entry):
-            """Parses a entry from the .txt type of family file."""
-            key        = ''
-            value    = ''
-            i        = 0
-            while entry[i] != '=':
-                key    += entry[i]
-                i    += 1
-                value    = entry[i+1:]
-            return key, value
-        
-        if len(line) > 1:
-            line =     individual_line.split()
-            info = {} #Dictionary with info of individual
-            info[ind] = line[0]
-            other_info = line[1].split(';')
-            for entry in other_info:
-                key, value = parse_entry(entry)
-                if key in ['fid','family', 'family_id']:
-                    info[family] = value
-                elif key in ['mom', 'mother']:
-                    info[mother] = value
-                elif key in ['dad', 'father']:
-                    info[father] = value
-                elif key in ['sex', 'gender']:
-                    info[sex] = value
-                elif key in ['phenotype', 'pheno']:
-                    info[phenotype] = value
-                else:
-                    print 'Unknown parameter', key, value
-                    sys.exit()
-            if fam_id not in self.families:
-                self.families['fam_id'] = family.Family(fam_id)
-            self.families['fam_id'].add_individual(ind=ind_id, father=father, mother=mother, sex=sex, phenotype=pheno)
     
 
 def main():
