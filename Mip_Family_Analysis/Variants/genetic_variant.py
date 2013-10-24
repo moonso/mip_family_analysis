@@ -72,6 +72,17 @@ class Variant(object):
     """This class holds the necessary information about a genetic variant."""
     def __init__(self, chrom, start, stop, reference, alternative, identity='.', all_info = OrderedDict()):
         super(Variant, self).__init__()
+        # Properties:
+        self.chr = ''
+        self.start = 0
+        self.stop = 0
+        self.ref = ''
+        self.alt = ''
+        self.variant_id = ''
+        self.identity = ''
+        self.all_info = all_info
+        self.genotypes = {} # Dict with {'ind_id':<Genotype>, 'ind_id':<Genotype>, ...}
+
         # If chromosome name is like Chr3 or chr5 we change to 3 or 5
         if 'hr' in chrom:
             self.chr = chrom[3:]
@@ -106,7 +117,6 @@ class Variant(object):
             self.identity = '.'
         else:
             self.identity = identity #dbSNP-id STRING
-        self.all_info = all_info
         
         # Models:
         
@@ -208,6 +218,9 @@ class Variant(object):
     def __str__(self):
         """Print information about the variant"""
         variant_info = [self.chr, str(self.start) , str(self.stop), self.alt, self.ref]
+        for ind, geno in self.genotypes.items():
+            geno_info = ind+':'+geno.genotype
+            variant_info.append(geno_info)
         models = ';'.join(self.models)
         # for entry in self.all_info:
         #     if entry not in ['Chr', 'CHROM', 'Start', 'Stop', 'POS']:
