@@ -66,6 +66,7 @@ Copyright (c) 2012 __MyCompanyName__. All rights reserved.
 import sys
 import os
 from Mip_Family_Analysis.Utils.is_number import is_number
+from Mip_Family_Analysis.Variants import genotype
 from collections import OrderedDict
 
 class Variant(object):
@@ -142,10 +143,6 @@ class Variant(object):
         self.models = ['Na']
         self.rank_score = 0
     
-    def get_variant(self):
-        """Returns a dictionary with basic info about the variant."""
-        return {'chrom': self.chr, 'start': str(self.start), 'stop': str(self.stop), 'ref': self.ref, 'alt': self.alt, 'identity': self.identity}
-        
     def get_vcf_variant(self):
         """Return a list with information in vcf format"""
         vcf_info = [self.chr, str(self.start), self.identity, self.ref, self.alt]
@@ -173,7 +170,7 @@ class Variant(object):
         gene_annotation in ['Ensembl', 'HGNC']"""
         genes = []
         if gene_annotation == 'Ensembl':
-            key_word = 'Ensemble_GeneID'
+            key_word = 'Ensemble_gene_id'
             delimiter = ';'
             genes = self.all_info.get(key_word, '')
             if len(genes) > 1:
@@ -189,7 +186,11 @@ class Variant(object):
         if genes == ['-']:
             genes = []
         return genes
-        
+    
+    def get_genotype(self, ind_id):
+        """Return the genotype for a certain individual."""
+        return self.genotypes.get(ind_id, genotype.Genotype())
+    
     def check_models(self):
         """Add the models to a list based on if they follow the pattern."""
         self.models = [] # If this function is run several times we empty the list each time
@@ -226,6 +227,7 @@ class Variant(object):
         #     if entry not in ['Chr', 'CHROM', 'Start', 'Stop', 'POS']:
         #         variant_info.append(self.all_info[entry])
         variant_info.append(models)
+        variant_info.append(str(self.rank_score))
         return '\t'.join(variant_info)
     
 

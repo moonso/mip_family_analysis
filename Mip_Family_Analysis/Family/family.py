@@ -37,7 +37,6 @@ class Family(object):
         self.individuals = individuals # This is a dictionary on the form {ind_id:<Individual object>}
         self.family_id = family_id
         self.models_of_inheritance = [] # List of models of inheritance that should be prioritized.
-        self.variants = OrderedDict() # Dictionary on the form {var_id:<Variant object>}
     
     def family_check(self):
         """Check if the family members break the structure of the family in any way, eg. nonexistent parent, wrong sex on parent..."""
