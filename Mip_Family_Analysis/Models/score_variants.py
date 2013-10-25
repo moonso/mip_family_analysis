@@ -71,6 +71,8 @@ def score_variant(variant_object, genetic_models = ['AR_hom', 'AD']):
     score += check_hgmd(hgmd)
     variant_object.rank_score = score
     
+    # return variant_object
+    
 def check_inheritance(variant_models, genetic_models):
     """Check if the models of inheritance are followed for the variant."""
     model_score = 0
