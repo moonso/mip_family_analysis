@@ -4,6 +4,33 @@
 Tool for analyzing variants in a family setting with the mip pipeline.
 Annotates and evalautes all variants according to genetic models, frequency in population etc.
 
+Basic usage:
+
+Annotate_models needs *setuptools* to install proper.
+Setuptools is included in python version 2.7.
+If other version please do 
+
+```
+ pip install setuptools 
+ 
+```
+or
+
+```
+ easy_install setuptools 
+ 
+```
+
+before installing Mip Family Analysis.
+
+```
+ git clone git@github.com:moonso/Mip_Family_Analysis.git
+ cd Mip_Family_Analysis
+ python setup.py install
+
+mip_family_analysis ped_file annotated_variant_file
+
+```
 
 ## Structure ##
 
