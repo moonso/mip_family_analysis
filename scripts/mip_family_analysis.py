@@ -30,6 +30,8 @@ def main():
     
     parser.add_argument('-o', '--output', type=str, nargs=1, help='Specify the path to a file where results should be stored.')
 
+    parser.add_argument('-pos', '--position', action="store_true", help='If output should be sorted by position. Default is sorted on rank score')
+    
     args = parser.parse_args()
     
     gene_annotation = 'Ensembl'
@@ -66,31 +68,70 @@ def main():
     
     new_headers.append('Inheritance_model')
     new_headers.append('Rank_score')
+    new_headers.append('Compounds')
     
         
     # Check the genetic models
     variants = []
+    print 'Hej'
     for chrom in my_variant_parser.chrom_shelves:
         variant_db = shelve.open(my_variant_parser.chrom_shelves[chrom])
         for var_id in variant_db:
             variants.append(variant_db[var_id])
         if args.verbose:
             for variant in variants:
-                print variant.variant_id
+                print 'Before:', variant.variant_id, variant.models
         genetic_models.genetic_models(my_family, variants, gene_annotation)
+        if args.verbose:
+            for variant in variants:
+                print 'After:',variant.variant_id, variant.models
+                print ''
+        print 'du'
         for variant in variants:
+            if args.verbose:
+                print 'Before:', variant.variant_id, variant.rank_score
             score_variants.score_variant(variant, preferred_models)
+            if args.verbose:
+                print 'After:',variant.variant_id, variant.rank_score
+                print ''
             variant_db[variant.variant_id] = variant
+        print 'glade'
+        for variant in variants:
+            if len(variant.ar_comp_genes) > 0:
+                for gene in variant.ar_comp_genes:
+                    print 'Variant_id', variant.variant_id,'Gene', gene, 'Variants', variant.ar_comp_genes[gene]
+                    for compound_variant in variant.ar_comp_genes[gene]:
+                        variant.ar_comp_variants.append(variant_db[compound_variant.variant_id])
+        print 'kop'
+        for variant in variants:
+            variant_db[variant.variant_id] = variant
+        print 'Dig'
         variant_db.close()
+    
+    
 
     print '\t'.join(new_headers)
-    
-    print 'DUDUDUDUD'
-        
+    print 'en'        
     for chrom in my_variant_parser.chrom_shelves:
         variant_db = shelve.open(my_variant_parser.chrom_shelves[chrom])
-        for variant in sorted(variant_db.keys()):
-            print '\t'.join(variant_db[variant].get_cmms_variant())
+        
+        print 'Spade'
+        if args.position:
+            for variant in sorted(variant_db.keys()):
+                print '\t'.join(variant_db[variant].get_cmms_variant())
+        
+        else:
+            rank_scores = {}
+            for variant_id in variant_db:
+                rank_score = variant_db[variant_id].rank_score
+                if rank_score in rank_scores:
+                    rank_scores[rank_score].append(variant_db[variant_id])
+                else:
+                    rank_scores[rank_score] = [variant_db[variant_id]]
+            
+            for rank in sorted(rank_scores.keys()):
+                for variant in rank_scores[rank]:
+                    print '\t'.join(variant.get_cmms_variant())
         os.remove(my_variant_parser.chrom_shelves[chrom])
 
         

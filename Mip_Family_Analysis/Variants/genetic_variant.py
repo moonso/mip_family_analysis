@@ -164,10 +164,14 @@ class Variant(object):
             cmms_info.append(self.all_info[key])
         cmms_info.append(':'.join(self.models))
         cmms_info.append(str(self.rank_score))
-        print 'HEJ!'
-        for gene in self.ar_comp_genes:
-            print gene
-            print self.ar_comp_genes[gene]
+        if len(self.ar_comp_variants) > 0:
+            compound_variants = []
+            for variant in self.ar_comp_variants:
+                pair_score = self.rank_score + variant.rank_score
+                compound_variants.append(variant.variant_id+'='+str(pair_score))
+        else:
+            compound_variants = ['-']
+        cmms_info.append(':'.join(compound_variants))
         return cmms_info
         
     def get_genes(self, gene_annotation = 'Ensembl'):
