@@ -53,7 +53,6 @@ Copyright (c) 2013 __MyCompanyName__. All rights reserved.
 """
 
 import sys
-import os
 from Mip_Family_Analysis.Variants import genotype
 from Mip_Family_Analysis.Utils import pair_generator
 
@@ -73,23 +72,26 @@ class genetic_models(object):
         genes_with_many_variants = []
        
         # For each variant in the family:
-        for variant_id in self.variants:
+        for variant in self.variants:
+            
+            variant_id = variant.variant_id
                         
             # Only check X-linked for the variants in the X-chromosome:
-            if self.variants[variant_id].chr == 'X':
-                self.check_x_linked(variant_id)
+            if variant.chr == 'X':
+                self.check_x_linked(variant)
             else:
             # Check the dominant model:
-                self.check_dominant(variant_id)
+                self.check_dominant(variant)
             # Check the recessive model:
-                self.check_recessive(variant_id)
+                self.check_recessive(variant)
             
             # Prepare for compounds by adding all variants for each gene:
-            for gene_id in self.variants[variant_id].get_genes(gene_annotation):
+            for gene_id in variant.get_genes(gene_annotation):
+                
                 if gene_id in self.gene_variants:
-                    self.gene_variants[gene_id].append(variant_id)
+                    self.gene_variants[gene_id].append(variant)
                 elif gene_id != '':
-                    self.gene_variants[gene_id] = [variant_id]
+                    self.gene_variants[gene_id] = [variant]
         
         counter = 0
         
@@ -99,26 +101,27 @@ class genetic_models(object):
         # If there are more than one variant in a gene we start to look for compounds.
             if len(self.gene_variants[gene_id]) > 1 and len(self.gene_variants[gene_id]) < max_variants:
                 if len(self.gene_variants[gene_id]) < max_variants:
+                    # Send the gene id and a list of variants
                     self.check_compound(gene_id, self.gene_variants[gene_id])
                 else:
                     genes_with_many_variants.append(gene_id)
         
         # Annotate the variants
-        for variant_id in self.variants:
-            if len(self.variants[variant_id].ar_comp_genes) == 0:
-                self.variants[variant_id].ar_comp = False
+        for variant in self.variants:
+            if len(variant.ar_comp_genes) == 0:
+                variant.ar_comp = False
             else:
-                for gene, variant_list in self.variants[variant_id].ar_comp_genes.items():
+                for gene, variant_list in variant.ar_comp_genes.items():
                     if len(variant_list) > 0:
-                        self.family.variants[variant_id].ar_comp = True
-            self.variants[variant_id].check_models()
+                        variant.ar_comp = True
+            variant.check_models()
     
-    def check_x_linked(self, variant_id):
+    def check_x_linked(self, variant):
         """Check if the variant follows the x linked patter of inheritance in this family."""
         for individual_id in self.family.individuals:
             individual = self.family.individuals[individual_id]
             # Get the genotype for this variant for this individual
-            genotype = self.variants[variant_id].get_genotype(individual_id)
+            genotype = variant.get_genotype(individual_id)
             
             # The case where the individual is healthy
             if individual.phenotype == 1:
@@ -126,67 +129,67 @@ class genetic_models(object):
                 if individual.sex == 1:
                     if genotype.has_variant:
                     # If the individual is healthy, male and have a variation it can not be x-linked.
-                        self.variants[variant_id].x_linked = False
-                        self.variants[variant_id].x_linked_dn = False
+                        variant.x_linked = False
+                        variant.x_linked_dn = False
                 
                 #The case where the individual is a female
                 elif individual.sex == 2:
                     # If the individual is HEALTHY, female and is homozygote alternative it can not be x - linked.
                     if genotype.homo_alt:
-                        self.variants[variant_id].x_linked = False
-                        self.variants[variant_id].x_linked_dn = False
+                        variant.x_linked = False
+                        variant.x_linked_dn = False
             
             # The case when the individual is sick
             elif individual.phenotype == 2:
                 #If the individual is sick and homozygote ref it can not be                     x-linked
                 if genotype.homo_ref:
-                    self.variants[variant_id].x_linked = False
-                    self.variants[variant_id].x_linked_dn = False
+                    variant.x_linked = False
+                    variant.x_linked_dn = False
                 elif genotype.has_variant:
-                    self.check_parents('x_linked', individual_id, variant_id)
+                    self.check_parents('x_linked', individual, variant)
             # Else if phenotype is unknown we can not say anything about the model
     
-    def check_dominant(self, variant_id):
+    def check_dominant(self, variant):
         """Check if the variant follows the dominant pattern in this family."""
         for individual_id in self.family.individuals: 
             # Check in all individuals what genotypes that are in the trio based of the individual picked.
             individual = self.family.individuals[individual_id]    
-            genotype = self.variants[variant_id].get_genotype(individual_id)
+            genotype = variant.get_genotype(individual_id)
             if individual.phenotype == 1:# The case where the individual is healthy
                 if genotype.has_variant:
                     # If the individual is healthy and have a variation on one or both alleles it can not be dominant.
-                    self.variants[variant_id].ad = False
-                    self.variants[variant_id].ad_dn = False
+                    variant.ad = False
+                    variant.ad_dn = False
             elif individual.phenotype == 2:
                 # The case when the individual is sick
                 if genotype.homo_ref:
-                    self.variants[variant_id].ad = False
-                    self.variants[variant_id].ad_dn = False
+                    variant.ad = False
+                    variant.ad_dn = False
                 else: 
                 # Now the ind is sick and have a variant ≠ ref, check parents for de novo
-                    self.check_parents('dominant', individual_id, variant_id)
+                    self.check_parents('dominant', individual, variant)
                 # Else if phenotype is unknown we can not say anything about the model
     
-    def check_recessive(self, variant_id):
+    def check_recessive(self, variant):
         """Check if the variant follows the autosomal recessive pattern in this family."""
         for individual_id in self.family.individuals: 
             individual = self.family.individuals[individual_id]    
-            genotype = self.variants[variant_id].get_genotype(individual_id)
+            genotype = variant.get_genotype(individual_id)
             # The case where the individual is healthy:
             if individual.phenotype == 1:
             # If the individual is healthy and homozygote alt the model is broken.
                 if genotype.homo_alt:
-                    self.variants[variant_id].ar = False
-                    self.variants[variant_id].ar_dn = False
+                    variant.ar = False
+                    variant.ar_dn = False
             elif individual.phenotype == 2:# The case when the individual is sick
             # In the case of a sick individual it must be homozygote alternative for compound heterozygote to be true.
             # Also, we can not exclude the model if no call.
                 if genotype.homo_ref or genotype.heterozygote:
-                    self.variants[variant_id].ar = False
-                    self.variants[variant_id].ar_dn = False
+                    variant.ar = False
+                    variant.ar_dn = False
                 else:
                 #Models are followed but we need to check the parents to see if de novo is followed or not.
-                    self.check_parents('recessive', individual_id, variant_id)
+                    self.check_parents('recessive', individual, variant)
     
     def check_compound(self, gene_id, list_of_variants):
         """Check which variants in the list that follow the compound heterozygous model. 
@@ -200,7 +203,7 @@ class genetic_models(object):
         
         def add_false_variants(false_variants, variant_list):
             """Add the pairs that where found to be not true"""
-            for variant_id in variant_list:
+            for variant in variant_list:
                 if (variant_list[0],variant_list[1]) not in false_variants:
                     false_variants.append((variant_list[0],variant_list[1]))
                 if (variant_list[1],variant_list[0]) not in false_variants:
@@ -218,26 +221,26 @@ class genetic_models(object):
         
         def add_comp_variants(gene_id, variant_pair):
             """Annotate the gene with the true compounds to each of the variants."""
-            if gene_id in self.variants[variant_pair[0]].ar_comp_genes:
-                if variant_pair[1] not in self.variants[variant_pair[0]].ar_comp_genes[gene_id]:
-                    self.variants[variant_pair[0]].ar_comp_genes[gene_id].append(variant_pair[1])
+            if gene_id in variant_pair[0].ar_comp_genes:
+                if variant_pair[1] not in variant_pair[0].ar_comp_genes[gene_id]:
+                    variant_pair[0].ar_comp_genes[gene_id].append(variant_pair[1])
             else:
-                self.variants[variant_pair[0]].ar_comp_genes[gene_id] = [variant_pair[1]]
-            if gene_id in self.variants[variant_pair[1]].ar_comp_genes:
-                if variant_pair[0] not in self.variants[variant_pair[1]].ar_comp_genes[gene_id]:
-                    self.variants[variant_pair[1]].ar_comp_genes[gene_id].append(variant_pair[0])
+                variant_pair[0].ar_comp_genes[gene_id] = [variant_pair[1]]
+            if gene_id in variant_pair[1].ar_comp_genes:
+                if variant_pair[0] not in variant_pair[1].ar_comp_genes[gene_id]:
+                    variant_pair[1].ar_comp_genes[gene_id].append(variant_pair[0])
             else:
-                self.variants[variant_pair[1]].ar_comp_genes[gene_id] = [variant_pair[0]]
+                variant_pair[1].ar_comp_genes[gene_id] = [variant_pair[0]]
         
-        # Returns a generator with all possible pairs for this individual:
+        # Returns a generator with all possible (unordered) pairs for this individual:
         my_pairs = pair_generator.Pair_Generator(list_of_variants)
         for pair in my_pairs.generate_pairs():
             variant_1 = pair[0]
             variant_2 = pair[1]
             for individual_id in self.family.individuals: # Check in all individuals what genotypes that are in the trio based of the individual picked.
                 individual = self.family.individuals[individual_id]
-                genotype_1 = self.variants[variant_1].get_genotype(individual_id)
-                genotype_2 = self.variants[variant_2].get_genotype(individual_id)
+                genotype_1 = variant_1.get_genotype(individual_id)
+                genotype_2 = variant_2.get_genotype(individual_id)
                 # If an individual has any of the variants homo alt, healthy or sick, it will not count as a compound:
                 if genotype_1.homo_alt or genotype_2.homo_alt:
                     false_variants = add_false_variants(false_variants, [variant_1, variant_2])
@@ -252,16 +255,16 @@ class genetic_models(object):
                             mother_genotype_2 = genotype.Genotype()
                             mother_phenotype = 0
                         else:
-                            mother_genotype_1 = self.variants[variant_1].get_genotype(mother_id)
-                            mother_genotype_2 = self.variants[variant_2].get_genotype(mother_id)
+                            mother_genotype_1 = variant_1.get_genotype(mother_id)
+                            mother_genotype_2 = variant_2.get_genotype(mother_id)
                             mother_phenotype = self.family.individuals[mother_id].phenotype
                         if father_id == '0': # Non existing father
                             father_genotype_1 = genotype.Genotype()
                             father_genotype_2 = genotype.Genotype()
                             father_phenotype = 0
                         else:
-                            father_genotype_1 = self.variants[variant_1].get_genotype(father_id)
-                            father_genotype_2 = self.variants[variant_2].get_genotype(father_id)
+                            father_genotype_1 = variant_1.get_genotype(father_id)
+                            father_genotype_2 = variant_2.get_genotype(father_id)
                             father_phenotype = self.family.individuals[father_id].phenotype
                         # If a parent has both variants and is unaffected it can not be a compound.
                         # This will change when we get the phasing information.
@@ -273,53 +276,52 @@ class genetic_models(object):
             if variant_pair not in false_variants:
                 add_comp_variants(gene_id, variant_pair) 
     
-    def check_parents(self, model, individual_id, variant_id):
+    def check_parents(self, model, individual, variant):
         """Check if information in the parents can tell us if model is de novo or not. Model in ['recessive', 'compound', 'dominant']."""
-        individual = self.family.individuals[individual_id]
         sex = individual.sex
         mother_id = individual.mother
         father_id = individual.father
-        individual_genotype = self.variants[variant_id].get_genotype(individual_id)
+        individual_genotype = variant.get_genotype(individual.ind_id)
         if mother_id == '0': # Non existing mother
             mother_genotype = genotype.Genotype()# This will initialise a genptype like './.' and nocall is True
             mother_phenotype = 0# This is the code for unknown phenotype
         else:
-            mother_genotype = self.variants[variant_id].get_genotype(mother_id)
+            mother_genotype = variant.get_genotype(mother_id)
             mother_phenotype = self.family.individuals[mother_id].phenotype
         if father_id == '0': # Non existing father
             father_genotype = genotype.Genotype()
             father_phenotype = 0
         else:
-            father_genotype = self.variants[variant_id].get_genotype(father_id)
+            father_genotype = variant.get_genotype(father_id)
             father_phenotype = self.family.individuals[father_id].phenotype
         if model == 'recessive':
             # If any of the parents doesent exist de novo will be true as the model is specifyed now
             if mother_id != '0' and father_id != '0':
             # If both parents have the variant or if one of the parents are homozygote the de novo model is NOT followed, otherwise de novo is true.
                 if (mother_genotype.homo_alt or father_genotype.homo_alt) or (mother_genotype.has_variant and father_genotype.has_variant):
-                    self.variants[variant_id].ar_dn = False
-            if self.variants[variant_id].ar_dn:# If de novo is true then the it is only de novo
-                    self.variants[variant_id].ar = False
+                    variant.ar_dn = False
+            if variant.ar_dn:# If de novo is true then the it is only de novo
+                    variant.ar = False
                     
         elif model == 'dominant':
         # If one of the parents have the variant on any form the de novo model is NOT followed.
             if mother_genotype.has_variant or father_genotype.has_variant:
-                self.variants[variant_id].ad_dn = False
-            if self.variants[variant_id].ad_dn:# If variant is ad de novo then it is not ad
-                self.variants[variant_id].ad = False
+                variant.ad_dn = False
+            if variant.ad_dn:# If variant is ad de novo then it is not ad
+                variant.ad = False
                 
         elif model == 'x_linked':
             if sex == 1: #If male
             
                 if mother_genotype.has_variant or father_genotype.has_variant:
-                    self.variants[variant_id].x_linked_dn = False
+                    variant.x_linked_dn = False
             elif sex == 2: #If female
                 if individual_genotype.heterozygote:
                     if (mother_genotype.homo_alt or father_genotype.homo_alt) or (mother_genotype.has_variant and father_genotype.has_variant):
-                        self.variants[variant_id].x_linked_dn = False
+                        variant.x_linked_dn = False
                 elif individual_genotype.homo_alt:
                     if mother_genotype.has_variant or father_genotype.has_variant:
-                        self.variants[variant_id].x_linked_dn = False            
+                        variant.x_linked_dn = False            
     
 
 

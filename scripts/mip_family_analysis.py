@@ -26,9 +26,16 @@ def main():
     
     parser.add_argument('-v', '--verbose', action="store_true", help='Increase output verbosity.')
     
+    parser.add_argument('-ga', '--gene_annotation', type=str, choices=['Ensembl', 'HGNC'], nargs=1, help='What gene annotation should be used, HGNC or Ensembl.')
+    
     parser.add_argument('-o', '--output', type=str, nargs=1, help='Specify the path to a file where results should be stored.')
 
     args = parser.parse_args()
+    
+    gene_annotation = 'Ensembl'
+    
+    if args.gene_annotation:
+       gene_annotation = args.gene_annotation[0]
     
     new_headers = []    
         
@@ -60,7 +67,6 @@ def main():
     new_headers.append('Inheritance_model')
     new_headers.append('Rank_score')
     
-    print '\t'.join(new_headers)
         
     # Check the genetic models
     variants = []
@@ -71,15 +77,21 @@ def main():
         if args.verbose:
             for variant in variants:
                 print variant.variant_id
-        genetic_models.genetic_models(my_family, variants)
-        # for variants in variants:
-        #     variant = variants[variant_id]
-        #     score_variants.score_variant(variant, preferred_models)
-        #     variants[variant_id] = variant
-        # for variant in sorted(variants.keys()):
-        #     print '\t'.join(variants[variant].get_cmms_variant())
-        # variants.close()
-        # os.remove(my_variant_parser.chrom_shelves[chrom])
+        genetic_models.genetic_models(my_family, variants, gene_annotation)
+        for variant in variants:
+            score_variants.score_variant(variant, preferred_models)
+            variant_db[variant.variant_id] = variant
+        variant_db.close()
+
+    print '\t'.join(new_headers)
+    
+    print 'DUDUDUDUD'
+        
+    for chrom in my_variant_parser.chrom_shelves:
+        variant_db = shelve.open(my_variant_parser.chrom_shelves[chrom])
+        for variant in sorted(variant_db.keys()):
+            print '\t'.join(variant_db[variant].get_cmms_variant())
+        os.remove(my_variant_parser.chrom_shelves[chrom])
 
         
     
