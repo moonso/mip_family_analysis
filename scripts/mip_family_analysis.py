@@ -63,20 +63,23 @@ def main():
     print '\t'.join(new_headers)
         
     # Check the genetic models
+    variants = []
     for chrom in my_variant_parser.chrom_shelves:
-        variants = shelve.open(my_variant_parser.chrom_shelves[chrom])
+        variant_db = shelve.open(my_variant_parser.chrom_shelves[chrom])
+        for var_id in variant_db:
+            variants.append(variant_db[var_id])
         if args.verbose:
             for variant in variants:
-                print variants[variant]
+                print variant.variant_id
         genetic_models.genetic_models(my_family, variants)
-        for variant_id in variants:
-            variant = variants[variant_id]
-            score_variants.score_variant(variant, preferred_models)
-            variants[variant_id] = variant
-        for variant in sorted(variants.keys()):
-            print '\t'.join(variants[variant].get_cmms_variant())
-        variants.close()
-        os.remove(my_variant_parser.chrom_shelves[chrom])
+        # for variants in variants:
+        #     variant = variants[variant_id]
+        #     score_variants.score_variant(variant, preferred_models)
+        #     variants[variant_id] = variant
+        # for variant in sorted(variants.keys()):
+        #     print '\t'.join(variants[variant].get_cmms_variant())
+        # variants.close()
+        # os.remove(my_variant_parser.chrom_shelves[chrom])
 
         
     
