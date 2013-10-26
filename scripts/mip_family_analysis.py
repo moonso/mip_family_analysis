@@ -13,6 +13,7 @@ import sys
 import os
 import argparse
 import shelve
+from datetime import datetime
 
 from Mip_Family_Analysis.Family import family_parser
 from Mip_Family_Analysis.Variants import variant_parser
@@ -54,12 +55,19 @@ def main():
         
     # Check the variants:
     
+    start_time_variant_parsing = datetime.now()
+    
     var_file = args.variant_file[0]
     file_name, file_extension = os.path.splitext(var_file)
         
     var_type = 'cmms'        
         
     my_variant_parser = variant_parser.VariantParser(var_file, var_type)
+
+
+    if args.verbose:
+        print 'Variants done!. Time to parse variants: ', (datetime.now() - start_time_variant_parsing)
+        print ''
 
     # Add info about variant file:
     new_headers = my_variant_parser.header_lines 
@@ -70,68 +78,58 @@ def main():
     new_headers.append('Rank_score')
     new_headers.append('Compounds')
     
+    start_time_genetic_models = datetime.now()
+
         
     # Check the genetic models
     variants = []
-    print 'Hej'
+    for chrom in my_variant_parser.chrom_shelves:
+        variant_db = shelve.open(my_variant_parser.chrom_shelves[chrom])
+        print 'Length of ',chrom , len(variant_db)
+        for var_id in variant_db:
+            variants.append(variant_db[var_id])
+        genetic_models.genetic_models(my_family, variants, gene_annotation)
+        
+        if args.verbose:
+            print 'Models checked!. Time to check models: ', (datetime.now() - start_time_genetic_models)
+            print ''
+
+        for variant in variants:
+            score_variants.score_variant(variant, preferred_models)
+            variant_db[variant.variant_id] = variant
+        for variant in variants:
+            if len(variant.ar_comp_genes) > 0:
+                for gene in variant.ar_comp_genes:
+                    print 'Comp!', gene, variant.ar_comp_genes[gene]
+                    for compound_variant in variant.ar_comp_genes[gene]:
+                        variant.ar_comp_variants.append(variant_db[compound_variant.variant_id])
+                variant.ar_comp_genes = {}
+        for variant in variants:
+            variant_db[variant.variant_id] = variant
+        
+        start_time_close_db = datetime.now()
+
+        variant_db.close()
+    
+        if args.verbose:
+            print 'db '+ my_variant_parser.chrom_shelves[chrom] +' closed!. Time to close db: ', (datetime.now() - start_time_close_db)
+            print ''
+    
+
+    print '\t'.join(new_headers)
+    variants = []
     for chrom in my_variant_parser.chrom_shelves:
         variant_db = shelve.open(my_variant_parser.chrom_shelves[chrom])
         for var_id in variant_db:
             variants.append(variant_db[var_id])
-        if args.verbose:
-            for variant in variants:
-                print 'Before:', variant.variant_id, variant.models
-        genetic_models.genetic_models(my_family, variants, gene_annotation)
-        if args.verbose:
-            for variant in variants:
-                print 'After:',variant.variant_id, variant.models
-                print ''
-        print 'du'
-        for variant in variants:
-            if args.verbose:
-                print 'Before:', variant.variant_id, variant.rank_score
-            score_variants.score_variant(variant, preferred_models)
-            if args.verbose:
-                print 'After:',variant.variant_id, variant.rank_score
-                print ''
-            variant_db[variant.variant_id] = variant
-        print 'glade'
-        for variant in variants:
-            if len(variant.ar_comp_genes) > 0:
-                for gene in variant.ar_comp_genes:
-                    print 'Variant_id', variant.variant_id,'Gene', gene, 'Variants', variant.ar_comp_genes[gene]
-                    for compound_variant in variant.ar_comp_genes[gene]:
-                        variant.ar_comp_variants.append(variant_db[compound_variant.variant_id])
-        print 'kop'
-        for variant in variants:
-            variant_db[variant.variant_id] = variant
-        print 'Dig'
-        variant_db.close()
-    
-    
-
-    print '\t'.join(new_headers)
-    print 'en'        
-    for chrom in my_variant_parser.chrom_shelves:
-        variant_db = shelve.open(my_variant_parser.chrom_shelves[chrom])
         
-        print 'Spade'
         if args.position:
-            for variant in sorted(variant_db.keys()):
-                print '\t'.join(variant_db[variant].get_cmms_variant())
+            for variant in sorted(variants, key=lambda genetic_variant:genetic_variant.variant_id):
+                print '\t'.join(variant.get_cmms_variant())
         
         else:
-            rank_scores = {}
-            for variant_id in variant_db:
-                rank_score = variant_db[variant_id].rank_score
-                if rank_score in rank_scores:
-                    rank_scores[rank_score].append(variant_db[variant_id])
-                else:
-                    rank_scores[rank_score] = [variant_db[variant_id]]
-            
-            for rank in sorted(rank_scores.keys()):
-                for variant in rank_scores[rank]:
-                    print '\t'.join(variant.get_cmms_variant())
+            for variant in sorted(variants, key=lambda genetic_variant:genetic_variant.rank_score, reverse = True):
+                print '\t'.join(variant.get_cmms_variant())
         os.remove(my_variant_parser.chrom_shelves[chrom])
 
         
