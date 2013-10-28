@@ -85,7 +85,6 @@ def main():
 
     print '\t'.join(new_headers)
     
-    print 'DUDUDUDUD'
         
     for chrom in my_variant_parser.chrom_shelves:
         variant_db = shelve.open(my_variant_parser.chrom_shelves[chrom])
