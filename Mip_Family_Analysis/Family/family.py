@@ -32,9 +32,9 @@ from collections import OrderedDict
 
 class Family(object):
     """Base class for the family parsers."""
-    def __init__(self, family_id, individuals = {}):
+    def __init__(self, family_id, individuals = []):
         super(Family, self).__init__()
-        self.individuals = individuals # This is a dictionary on the form {ind_id:<Individual object>}
+        self.individuals = individuals # This is a list with individual objects
         self.family_id = family_id
         self.models_of_inheritance = [] # List of models of inheritance that should be prioritized.
     
@@ -45,19 +45,15 @@ class Family(object):
     
     def add_individual(self, individual_object):
         """Add an individual to the family."""
-        self.individuals[individual_object.ind_id] = individual_object
+        self.individuals.append(individual_object)
     
-    def add_variant(self, variant_object):
-        """Adds the variants to the family."""
-        self.variants[variant_object.variant_id] = variant_object
-    
-    def print_all_variants(self):
-        """Print all original variants."""
-        for variant in self.variants:
-            print variant
-            for individual in self.individuals:
-                genotype = self.individuals[individual].genotypes[variant]
-                print individual, genotype
+    def get_phenotype(self, ind_id):
+        """Return the phenotype of an individual or 0 if nonexisting individual."""
+        phenotype = 0 # This is if unknown phenotype
+        for individual in self.individuals:
+            if ind_id == individual.individual_id:
+                phenotype = individual.phenotype
+        return phenotype
     
     def __str__(self):
         """Print the family members of this family"""

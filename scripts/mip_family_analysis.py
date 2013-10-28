@@ -80,15 +80,19 @@ def main():
     
     start_time_genetic_models = datetime.now()
 
+    if args.verbose:
+        print 'Checking genetic models...'
+        print ''
+
         
     # Check the genetic models
     variants = []
     for chrom in my_variant_parser.chrom_shelves:
         variant_db = shelve.open(my_variant_parser.chrom_shelves[chrom])
-        print 'Length of ',chrom , len(variant_db)
+        variant_dict = {}
         for var_id in variant_db:
             variants.append(variant_db[var_id])
-        genetic_models.genetic_models(my_family, variants, gene_annotation)
+        variants = genetic_models.check_genetic_models(my_family, variants, gene_annotation)
         
         if args.verbose:
             print 'Models checked!. Time to check models: ', (datetime.now() - start_time_genetic_models)
@@ -96,14 +100,14 @@ def main():
 
         for variant in variants:
             score_variants.score_variant(variant, preferred_models)
-            variant_db[variant.variant_id] = variant
+            variant_dict[variant.variant_id] = variant
+    
         for variant in variants:
-            if len(variant.ar_comp_genes) > 0:
-                for gene in variant.ar_comp_genes:
-                    print 'Comp!', gene, variant.ar_comp_genes[gene]
-                    for compound_variant in variant.ar_comp_genes[gene]:
-                        variant.ar_comp_variants.append(variant_db[compound_variant.variant_id])
-                variant.ar_comp_genes = {}
+            if len(variant.ar_comp_variants) > 0:
+                for compound_variant_id in variant.ar_comp_variants:
+                    comp_score = variant.rank_score + variant_dict[compound_variant_id].rank_score
+                    variant.ar_comp_variants[compound_variant_id] = comp_score
+        
         for variant in variants:
             variant_db[variant.variant_id] = variant
         
