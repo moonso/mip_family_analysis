@@ -65,7 +65,7 @@ class FamilyParser(object):
         line = individual_line.split()
         fam_id = line[0]
         if fam_id not in self.families:
-            new_family = family.Family(family_id = fam_id, individuals = {})
+            new_family = family.Family(fam_id)
             self.families[fam_id] = new_family
         ind = line[1]
         father = line[2]
