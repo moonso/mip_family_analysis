@@ -4,7 +4,7 @@ from setuptools import setup, find_packages, Command
 
 
 setup(name="Mip_Family_Analysis",
-	version="0.1",
+	version="0.2",
 	author="Mans Magnusson",
 	author_email="mans.magnusson@scilifelab.se",
 	description=("A new tool for doing inheritance analysis and scoring in the mip pipeline."),
