@@ -32,7 +32,7 @@ class Individual(object):
         
         #TODO write test to throw exceptions if malformed input.
         
-        self.ind_id = ind #Individual Id STRING
+        self.individual_id = ind #Individual Id STRING
         self.family = family #Family Id STRING
         self.mother = mother #Mother Id STRING
         self.father = father # Father Id STRING

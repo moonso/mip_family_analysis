@@ -13,6 +13,8 @@ import sys
 import os
 import argparse
 import shelve
+import operator
+from datetime import datetime
 
 from Mip_Family_Analysis.Family import family_parser
 from Mip_Family_Analysis.Variants import variant_parser
@@ -30,6 +32,8 @@ def main():
     
     parser.add_argument('-o', '--output', type=str, nargs=1, help='Specify the path to a file where results should be stored.')
 
+    parser.add_argument('-pos', '--position', action="store_true", help='If output should be sorted by position. Default is sorted on rank score')
+    
     args = parser.parse_args()
     
     gene_annotation = 'Ensembl'
@@ -52,6 +56,8 @@ def main():
         
     # Check the variants:
     
+    start_time_variant_parsing = datetime.now()
+    
     var_file = args.variant_file[0]
     file_name, file_extension = os.path.splitext(var_file)
         
@@ -59,49 +65,72 @@ def main():
         
     my_variant_parser = variant_parser.VariantParser(var_file, var_type)
 
+
+    if args.verbose:
+        print 'Variants done!. Time to parse variants: ', (datetime.now() - start_time_variant_parsing)
+        print ''
+
     # Add info about variant file:
     new_headers = my_variant_parser.header_lines 
     
     # Add new headers:
     
     new_headers.append('Inheritance_model')
+    new_headers.append('Compounds')
     new_headers.append('Rank_score')
     
-        
-    # Check the genetic models
-    variants = []
-    for chrom in my_variant_parser.chrom_shelves:
-        variant_db = shelve.open(my_variant_parser.chrom_shelves[chrom])
-        for var_id in variant_db:
-            variants.append(variant_db[var_id])
-        if args.verbose:
-            for variant in variants:
-                print variant.variant_id
-        genetic_models.genetic_models(my_family, variants, gene_annotation)
-        for variant in variants:
-            score_variants.score_variant(variant, preferred_models)
-            variant_db[variant.variant_id] = variant
-        variant_db.close()
-
+    start_time_genetic_models = datetime.now()
+    
+    if args.verbose:
+        print 'Checking genetic models...'
+        print ''
+    
     print '\t'.join(new_headers)
     
-        
+    if not args.position:
+        all_variants = {}
+    # Check the genetic models
     for chrom in my_variant_parser.chrom_shelves:
+        variants = []
         variant_db = shelve.open(my_variant_parser.chrom_shelves[chrom])
-        for variant in sorted(variant_db.keys()):
-            print '\t'.join(variant_db[variant].get_cmms_variant())
+        variant_dict = {}
+        for var_id in variant_db:
+            variants.append(variant_db[var_id])
+        variants = genetic_models.check_genetic_models(my_family, variants, gene_annotation, verbose = args.verbose)
+        
+        if args.verbose:
+            for variant in variants:
+                print variant.models
+            print 'Models checked!. Time to check models: ', (datetime.now() - start_time_genetic_models)
+            print ''
+            
+        # Score the variants
+        for variant in variants:
+            score_variants.score_variant(variant, preferred_models)
+            variant_dict[variant.variant_id] = variant
+    
+        # Score the compound pairs:
+        for variant in variants:
+            if len(variant.ar_comp_variants) > 0:
+                for compound_variant_id in variant.ar_comp_variants:
+                    comp_score = variant.rank_score + variant_dict[compound_variant_id].rank_score
+                    variant.ar_comp_variants[compound_variant_id] = comp_score
+            if not args.position:
+                all_variants[variant.variant_id] = variant.get_cmms_variant()
+        
+        # Print by position if desired
+        if args.position:
+            for variant in sorted(variants, key=lambda genetic_variant:genetic_variant.start):
+                print '\t'.join(variant.get_cmms_variant())
+
+        variant_db.close()
         os.remove(my_variant_parser.chrom_shelves[chrom])
 
-        
-    
-    #     for individual in my_family.individuals:
-    #         print individual, my_family.individuals[individual].genotypes[variant]
-    # 
-    # print 'Score variants:'
-    # my_family.score_variants()
-    # print 'Variants scored!'
-    # # for variant in my_family.variants:
-    # #     my_family.variants[variant].print_model_info()
+    # Else print by rank score:
+    if not args.position:
+        for variant in sorted(all_variants.iteritems(), key=lambda (k,v): int(operator.itemgetter(-1)(v)), reverse=True):
+            print '\t'.join(variant[1])
+
 
 
 if __name__ == '__main__':

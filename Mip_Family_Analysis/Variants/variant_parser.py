@@ -29,6 +29,8 @@ class VariantParser(object):
        self.header_lines = []
        self.individuals = []
        self.metadata = []
+       #Dictionary with <Gene ID> : [variant_id_1, variant_id_2, ...] for controlling the compound heterozygotes
+       self.gene_variants = {}
        chrom_change = False
        beginning = True
        
@@ -103,6 +105,7 @@ class VariantParser(object):
         reference = variant_info['Reference_allele']
         identity = variant_info['Dbsnp_rs_nr']
         my_variant = genetic_variant.Variant(chrom, start, stop, reference, alternative, identity, variant_info)
+        
         
         # Add the genotypes to variant:
         

@@ -136,9 +136,8 @@ class Variant(object):
             self.x_linked = False
             self.x_linked_dn = False
         #If following Autosomal Recessive compound pattern for certain genes. DICT with {<Gene_ID>: [var_id_1, var_id_2, ...]]}
-        self.ar_comp_genes = {} 
         self.ar_comp = False
-        self.ar_comp_variants = []
+        self.ar_comp_variants = {}#Dict with {variant_id:pair_score}
         
         # self.ar_comp_dn = True #If following Autosomal Recessive Compound De Novo pattern BOOL
         self.models = ['Na']
@@ -163,11 +162,14 @@ class Variant(object):
         for key in self.all_info:
             cmms_info.append(self.all_info[key])
         cmms_info.append(':'.join(self.models))
+        if len(self.ar_comp_variants) > 0:
+            compound_variants = []
+            for compound_variant_id in self.ar_comp_variants:
+                compound_variants.append(compound_variant_id+'='+str(self.ar_comp_variants[compound_variant_id]))
+        else:
+            compound_variants = ['-']
+        cmms_info.append(':'.join(compound_variants))
         cmms_info.append(str(self.rank_score))
-        print 'HEJ!'
-        for gene in self.ar_comp_genes:
-            print gene
-            print self.ar_comp_genes[gene]
         return cmms_info
         
     def get_genes(self, gene_annotation = 'Ensembl'):
@@ -193,7 +195,7 @@ class Variant(object):
         return genes
     
     def get_genotype(self, ind_id):
-        """Return the genotype for a certain individual."""
+        """Return the genotype for a certain individual. Return a nocall if not existing."""
         return self.genotypes.get(ind_id, genotype.Genotype())
     
     def check_models(self):
