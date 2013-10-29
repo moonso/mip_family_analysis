@@ -136,6 +136,8 @@ def check_genetic_models(family, variants, gene_annotation = 'Ensembl', max_vari
         print 'Done with compounds!', datetime.now() - compounds_start
         print 'Number of interesting genes:', interesting_genes
         print 'Number of interesting variants:', interesting_variants
+    for variant in variants:
+        variant.check_models()
     
     return variants
 
