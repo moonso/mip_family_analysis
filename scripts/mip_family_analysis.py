@@ -79,25 +79,25 @@ def main():
     new_headers.append('Compounds')
     
     start_time_genetic_models = datetime.now()
-
+    
     if args.verbose:
         print 'Checking genetic models...'
         print ''
-
+    
         
     # Check the genetic models
-    variants = []
     for chrom in my_variant_parser.chrom_shelves:
+        variants = []
         variant_db = shelve.open(my_variant_parser.chrom_shelves[chrom])
         variant_dict = {}
         for var_id in variant_db:
             variants.append(variant_db[var_id])
-        variants = genetic_models.check_genetic_models(my_family, variants, gene_annotation)
+        variants = genetic_models.check_genetic_models(my_family, variants, gene_annotation, verbose = args.verbose)
         
         if args.verbose:
             print 'Models checked!. Time to check models: ', (datetime.now() - start_time_genetic_models)
             print ''
-
+    
         for variant in variants:
             score_variants.score_variant(variant, preferred_models)
             variant_dict[variant.variant_id] = variant
@@ -112,9 +112,9 @@ def main():
             variant_db[variant.variant_id] = variant
         
         start_time_close_db = datetime.now()
-
-        variant_db.close()
     
+        variant_db.close()
+        os.remove(my_variant_parser.chrom_shelves[chrom])
         if args.verbose:
             print 'db '+ my_variant_parser.chrom_shelves[chrom] +' closed!. Time to close db: ', (datetime.now() - start_time_close_db)
             print ''
@@ -122,19 +122,19 @@ def main():
 
     print '\t'.join(new_headers)
     variants = []
-    for chrom in my_variant_parser.chrom_shelves:
-        variant_db = shelve.open(my_variant_parser.chrom_shelves[chrom])
-        for var_id in variant_db:
-            variants.append(variant_db[var_id])
-        
-        if args.position:
-            for variant in sorted(variants, key=lambda genetic_variant:genetic_variant.variant_id):
-                print '\t'.join(variant.get_cmms_variant())
-        
-        else:
-            for variant in sorted(variants, key=lambda genetic_variant:genetic_variant.rank_score, reverse = True):
-                print '\t'.join(variant.get_cmms_variant())
-        os.remove(my_variant_parser.chrom_shelves[chrom])
+    # for chrom in my_variant_parser.chrom_shelves:
+    #     variant_db = shelve.open(my_variant_parser.chrom_shelves[chrom])
+    #     for var_id in variant_db:
+    #         variants.append(variant_db[var_id])
+    #     
+    #     if args.position:
+    #         for variant in sorted(variants, key=lambda genetic_variant:genetic_variant.variant_id):
+    #             print '\t'.join(variant.get_cmms_variant())
+    #     
+    #     else:
+    #         for variant in sorted(variants, key=lambda genetic_variant:genetic_variant.rank_score, reverse = True):
+    #             print '\t'.join(variant.get_cmms_variant())
+    #     os.remove(my_variant_parser.chrom_shelves[chrom])
 
         
     

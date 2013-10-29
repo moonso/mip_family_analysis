@@ -59,7 +59,7 @@ from Mip_Family_Analysis.Variants import genotype
 from Mip_Family_Analysis.Utils import pair_generator
 
 
-def check_genetic_models(family, variants, gene_annotation = 'Ensembl', max_variants = 200):
+def check_genetic_models(family, variants, gene_annotation = 'Ensembl', max_variants = 200, verbose = False):
     """Holds the genetic models."""
     #Dictionary with <Gene ID> : [variant_1, variant_2, ...] for controlling the compound heterozygotes
     gene_variants = {}
@@ -70,6 +70,11 @@ def check_genetic_models(family, variants, gene_annotation = 'Ensembl', max_vari
     variant_dict = {}
     
     i = 0
+    
+    if verbose:
+        print 'Check the normal models for', len(variants), 'variants:'
+        print ''
+    
     for variant in variants:
         i += 1
         variant_id = variant.variant_id
@@ -86,20 +91,31 @@ def check_genetic_models(family, variants, gene_annotation = 'Ensembl', max_vari
             check_recessive(variant, family)
         
         # Prepare for compounds by adding all variants for each gene:
-        for gene_id in variant.get_genes(gene_annotation):
-            if gene_id in gene_variants:
-                gene_variants[gene_id].append(variant)
-            elif gene_id != '':
-                gene_variants[gene_id] = [variant]
+        if check_compound_candidate(variant, family):
+            
+            for gene_id in variant.get_genes(gene_annotation):
+                if gene_id in gene_variants:
+                    gene_variants[gene_id].append(variant)
+                elif gene_id != '':
+                    gene_variants[gene_id] = [variant]
     
+    if verbose:
+        print 'Done with normal models'
+        print ''
+        print 'Check compounds:'
+
     
     # Check all compound candidates:
     
-    
+    interesting_genes = 0
+    interesting_variants = 0
+    more_than_20 = 0
     for gene_id in gene_variants:
     # If there are more than one variant in a gene we start to look for compounds.
         if len(gene_variants[gene_id]) > 1:
             if len(gene_variants[gene_id]) < max_variants:
+                interesting_genes += 1
+                interesting_variants += len(gene_variants[gene_id])
                 # Send the gene id and its list of variants
                 compound_pairs = check_compound(gene_id, gene_variants[gene_id], family)
             else:
@@ -112,9 +128,27 @@ def check_genetic_models(family, variants, gene_annotation = 'Ensembl', max_vari
                 variant_2.ar_comp_variants[variant_1.variant_id] = 0
                 variant_1.ar_comp = True    
                 variant_2.ar_comp = True    
+    if verbose:
+        print 'Done with compounds!'
+        print 'Number of interesting genes:', interesting_genes
+        print 'Number of interesting variants:', interesting_variants
     
     return variants
-    
+
+def check_compound_candidate(variant, family):
+    """Return true if the variant is a compound candidate..."""
+    for individual in family.individuals:
+        ind_genotype = variant.genotypes[individual.individual_id]
+        # If any individual of a family is homozygote alternative, we do not have a compound.
+        if ind_genotype.homo_alt:
+            return False
+        # If individual is sick
+        elif individual.phenotype == 2:
+        # If sick the individual has to be heterozygote if possible compound variant:
+            if not ind_genotype.heterozygote:
+                return False
+    return True
+
 def check_x_linked(variant, family):
     """Check if the variant follows the x linked patter of inheritance in this family."""
     for individual in family.individuals:
