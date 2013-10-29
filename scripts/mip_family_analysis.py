@@ -115,6 +115,7 @@ def main():
     
         variant_db.close()
         os.remove(my_variant_parser.chrom_shelves[chrom])
+        
         if args.verbose:
             print 'db '+ my_variant_parser.chrom_shelves[chrom] +' closed!. Time to close db: ', (datetime.now() - start_time_close_db)
             print ''

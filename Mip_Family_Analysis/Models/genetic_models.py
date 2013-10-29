@@ -55,6 +55,7 @@ Copyright (c) 2013 __MyCompanyName__. All rights reserved.
 import os
 import sys
 from collections import Counter
+from datetime import datetime
 from Mip_Family_Analysis.Variants import genotype
 from Mip_Family_Analysis.Utils import pair_generator
 
@@ -75,6 +76,8 @@ def check_genetic_models(family, variants, gene_annotation = 'Ensembl', max_vari
         print 'Check the normal models for', len(variants), 'variants:'
         print ''
     
+    normal_models = datetime.now()
+    
     for variant in variants:
         i += 1
         variant_id = variant.variant_id
@@ -89,7 +92,7 @@ def check_genetic_models(family, variants, gene_annotation = 'Ensembl', max_vari
             check_dominant(variant, family)
         # Check the recessive model:
             check_recessive(variant, family)
-        
+    
         # Prepare for compounds by adding all variants for each gene:
         if check_compound_candidate(variant, family):
             
@@ -100,10 +103,11 @@ def check_genetic_models(family, variants, gene_annotation = 'Ensembl', max_vari
                     gene_variants[gene_id] = [variant]
     
     if verbose:
-        print 'Done with normal models'
+        print 'Done with normal models', datetime.now() - normal_models
         print ''
         print 'Check compounds:'
 
+    compounds_start = datetime.now()
     
     # Check all compound candidates:
     
@@ -129,7 +133,7 @@ def check_genetic_models(family, variants, gene_annotation = 'Ensembl', max_vari
                 variant_1.ar_comp = True    
                 variant_2.ar_comp = True    
     if verbose:
-        print 'Done with compounds!'
+        print 'Done with compounds!', datetime.now() - compounds_start
         print 'Number of interesting genes:', interesting_genes
         print 'Number of interesting variants:', interesting_variants
     
