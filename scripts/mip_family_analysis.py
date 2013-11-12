@@ -14,6 +14,7 @@ import os
 import argparse
 import shelve
 import operator
+import multiprocessing
 from datetime import datetime
 
 from Mip_Family_Analysis.Family import family_parser
@@ -93,12 +94,18 @@ def main():
         all_variants = {}
     # Check the genetic models
     for chrom in my_variant_parser.chrom_shelves:
+        
         variants = []
         variant_db = shelve.open(my_variant_parser.chrom_shelves[chrom])
         variant_dict = {}
         for var_id in variant_db:
             variants.append(variant_db[var_id])
-        variants = genetic_models.check_genetic_models(my_family, variants, gene_annotation, verbose = args.verbose)
+        for variant in variants:
+            print variant
+        p = multiprocessing.Process(target=genetic_models.check_genetic_models, args=(my_family, variants, gene_annotation))
+        p.start()
+        p.join()
+        print 'HEJ', chrom
         
         if args.verbose:
             for variant in variants:
@@ -137,7 +144,6 @@ def main():
                     print '\t'.join(variant[1])
             else:
                 print '\t'.join(variant[1])
-                
 
 
 
