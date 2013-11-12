@@ -139,8 +139,6 @@ def check_genetic_models(family, variants, gene_annotation = 'Ensembl', max_vari
     for variant in variants:
         variant.check_models()
     
-    return variants
-
 def check_compound_candidate(variant, family):
     """Return true if the variant is a compound candidate..."""
     for individual in family.individuals:

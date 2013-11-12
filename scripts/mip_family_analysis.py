@@ -14,6 +14,7 @@ import os
 import argparse
 import shelve
 import operator
+import multiprocessing
 from datetime import datetime
 
 from Mip_Family_Analysis.Family import family_parser
@@ -91,12 +92,18 @@ def main():
         all_variants = {}
     # Check the genetic models
     for chrom in my_variant_parser.chrom_shelves:
+        
         variants = []
         variant_db = shelve.open(my_variant_parser.chrom_shelves[chrom])
         variant_dict = {}
         for var_id in variant_db:
             variants.append(variant_db[var_id])
-        variants = genetic_models.check_genetic_models(my_family, variants, gene_annotation, verbose = args.verbose)
+        for variant in variants:
+            print variant
+        p = multiprocessing.Process(target=genetic_models.check_genetic_models, args=(my_family, variants, gene_annotation))
+        p.start()
+        p.join()
+        print 'HEJ', chrom
         
         if args.verbose:
             for variant in variants:
@@ -105,31 +112,31 @@ def main():
             print ''
             
         # Score the variants
-        for variant in variants:
-            score_variants.score_variant(variant, preferred_models)
-            variant_dict[variant.variant_id] = variant
-    
-        # Score the compound pairs:
-        for variant in variants:
-            if len(variant.ar_comp_variants) > 0:
-                for compound_variant_id in variant.ar_comp_variants:
-                    comp_score = variant.rank_score + variant_dict[compound_variant_id].rank_score
-                    variant.ar_comp_variants[compound_variant_id] = comp_score
-            if not args.position:
-                all_variants[variant.variant_id] = variant.get_cmms_variant()
-        
-        # Print by position if desired
-        if args.position:
-            for variant in sorted(variants, key=lambda genetic_variant:genetic_variant.start):
-                print '\t'.join(variant.get_cmms_variant())
-
-        variant_db.close()
-        os.remove(my_variant_parser.chrom_shelves[chrom])
-
-    # Else print by rank score:
-    if not args.position:
-        for variant in sorted(all_variants.iteritems(), key=lambda (k,v): int(operator.itemgetter(-1)(v)), reverse=True):
-            print '\t'.join(variant[1])
+    #     for variant in variants:
+    #         score_variants.score_variant(variant, preferred_models)
+    #         variant_dict[variant.variant_id] = variant
+    # 
+    #     # Score the compound pairs:
+    #     for variant in variants:
+    #         if len(variant.ar_comp_variants) > 0:
+    #             for compound_variant_id in variant.ar_comp_variants:
+    #                 comp_score = variant.rank_score + variant_dict[compound_variant_id].rank_score
+    #                 variant.ar_comp_variants[compound_variant_id] = comp_score
+    #         if not args.position:
+    #             all_variants[variant.variant_id] = variant.get_cmms_variant()
+    #     
+    #     # Print by position if desired
+    #     if args.position:
+    #         for variant in sorted(variants, key=lambda genetic_variant:genetic_variant.start):
+    #             print '\t'.join(variant.get_cmms_variant())
+    # 
+    #     variant_db.close()
+    #     os.remove(my_variant_parser.chrom_shelves[chrom])
+    # 
+    # # Else print by rank score:
+    # if not args.position:
+    #     for variant in sorted(all_variants.iteritems(), key=lambda (k,v): int(operator.itemgetter(-1)(v)), reverse=True):
+    #         print '\t'.join(variant[1])
 
 
 
