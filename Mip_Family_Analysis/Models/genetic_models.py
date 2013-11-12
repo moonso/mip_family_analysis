@@ -138,11 +138,12 @@ def check_genetic_models(family, variants, gene_annotation = 'Ensembl', max_vari
         print 'Number of interesting variants:', interesting_variants
     for variant in variants:
         variant.check_models()
+    return variants
     
 def check_compound_candidate(variant, family):
     """Return true if the variant is a compound candidate..."""
     for individual in family.individuals:
-        ind_genotype = variant.genotypes[individual.individual_id]
+        ind_genotype = variant.get_genotype(individual.individual_id)
         # If any individual of a family is homozygote alternative, we do not have a compound.
         if ind_genotype.homo_alt:
             return False
