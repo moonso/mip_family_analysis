@@ -33,6 +33,8 @@ def main():
     parser.add_argument('-o', '--output', type=str, nargs=1, help='Specify the path to a file where results should be stored.')
 
     parser.add_argument('-pos', '--position', action="store_true", help='If output should be sorted by position. Default is sorted on rank score')
+
+    parser.add_argument('-tres', '--treshold', type=int, nargs=1, help='Specify the lowest rank score to be outputted.')
     
     args = parser.parse_args()
     
@@ -129,7 +131,13 @@ def main():
     # Else print by rank score:
     if not args.position:
         for variant in sorted(all_variants.iteritems(), key=lambda (k,v): int(operator.itemgetter(-1)(v)), reverse=True):
-            print '\t'.join(variant[1])
+            if args.treshold:
+                rank_score = int(variant[-1][-1])
+                if rank_score >= args.treshold[0]:
+                    print '\t'.join(variant[1])
+            else:
+                print '\t'.join(variant[1])
+                
 
 
 
