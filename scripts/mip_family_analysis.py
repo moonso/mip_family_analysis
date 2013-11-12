@@ -100,12 +100,8 @@ def main():
         variant_dict = {}
         for var_id in variant_db:
             variants.append(variant_db[var_id])
-        for variant in variants:
-            print variant
-        p = multiprocessing.Process(target=genetic_models.check_genetic_models, args=(my_family, variants, gene_annotation))
-        p.start()
-        p.join()
-        print 'HEJ', chrom
+        
+        variants = genetic_models.check_genetic_models(my_family, variants, gene_annotation, verbose = args.verbose)
         
         if args.verbose:
             for variant in variants:
