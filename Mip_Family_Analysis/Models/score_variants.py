@@ -84,6 +84,8 @@ def check_inheritance(variant_models, genetic_models):
     if model_score != 3:
         if variant_models != ['Na']:
             model_score = 1
+        else:
+            model_score = -12
     return model_score
     
 def check_predictions(mutation_taster = None, avsift = None, poly_phen = None):
