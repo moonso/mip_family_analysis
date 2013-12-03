@@ -91,7 +91,7 @@ def main():
     for data in my_variant_parser.metadata:
         print data
     
-    print '\t'.join(new_headers)
+    print '#'+'\t'.join(new_headers)
     
     if not args.position:
         all_variants = {}

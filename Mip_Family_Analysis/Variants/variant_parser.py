@@ -71,7 +71,7 @@ class VariantParser(object):
                            current_shelve[my_variant.variant_id] = my_variant
                        else:
                            chrom_change = True
-               elif line[:1] != '##':
+               elif line[:2] != '##':
                    # If necesary we can write something to parse the headers.
                    self.header_lines = line[1:].split()
                    self.metadata.append(line)
