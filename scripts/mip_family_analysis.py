@@ -88,6 +88,9 @@ def main():
         print 'Checking genetic models...'
         print ''
     
+    for data in my_variant_parser.metadata:
+        print data
+    
     print '\t'.join(new_headers)
     
     if not args.position:
