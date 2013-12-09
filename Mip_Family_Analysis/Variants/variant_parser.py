@@ -17,6 +17,7 @@ import sys
 import os
 import argparse
 import shelve
+import tempfile
 from Mip_Family_Analysis.Variants import genetic_variant, genotype
 from collections import OrderedDict
 
@@ -33,6 +34,7 @@ class VariantParser(object):
        self.gene_variants = {}
        chrom_change = False
        beginning = True
+       directory_name = tempfile.mkdtemp()
        
        with open(infile, 'r') as f:
            line_count = 0
@@ -43,7 +45,7 @@ class VariantParser(object):
                    # Close the shelve since we are at a new chromosome:
                    current_shelve.close()
                    # Make a new shelve:
-                   shelve_name = 'chrom_' + new_chrom + '.shelve'
+                   shelve_name = os.path.join(directory_name, 'chrom_' + new_chrom + '.shelve')
                    current_shelve = shelve.open(shelve_name)
                    # Add the filename to our dictionary:
                    self.chrom_shelves[new_chrom] = shelve_name
@@ -60,7 +62,7 @@ class VariantParser(object):
                        # Init
                        current_chrom = my_variant.chr
                        new_chrom = my_variant.chr
-                       shelve_name = 'chrom_' + new_chrom + '.shelve'
+                       shelve_name = os.path.join(directory_name, 'chrom_' + new_chrom + '.shelve')
                        current_shelve = shelve.open(shelve_name)
                        self.chrom_shelves[new_chrom] = shelve_name
                        current_shelve[my_variant.variant_id] = my_variant

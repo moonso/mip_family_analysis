@@ -98,6 +98,7 @@ def main():
     # Check the genetic models
     for chrom in my_variant_parser.chrom_shelves:
         
+        shelve_directory = os.path.split(my_variant_parser.chrom_shelves[chrom])[0]
         variants = []
         variant_db = shelve.open(my_variant_parser.chrom_shelves[chrom])
         variant_dict = {}
@@ -133,6 +134,7 @@ def main():
 
         variant_db.close()
         os.remove(my_variant_parser.chrom_shelves[chrom])
+    os.removedirs(shelve_directory)
 
     # Else print by rank score:
     if not args.position:
