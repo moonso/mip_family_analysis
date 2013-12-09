@@ -325,11 +325,13 @@ def check_parents(model, individual, variant, family):
         #If any of the parents have the variant it is not dn
             if mother_genotype.has_variant or father_genotype.has_variant:
                 variant.x_linked_dn = False
-        elif sex == 2: #If female
-            if individual_genotype.heterozygote:
+        #If female 
+        elif sex == 2:
+            #If 
+            if individual_genotype.homo_alt:
                 if (mother_genotype.homo_alt or father_genotype.homo_alt) or (mother_genotype.has_variant and father_genotype.has_variant):
                     variant.x_linked_dn = False
-            elif individual_genotype.homo_alt:
+            elif individual_genotype.heterozygote:
                 if mother_genotype.has_variant or father_genotype.has_variant:
                     variant.x_linked_dn = False
         if variant.x_linked_dn:
