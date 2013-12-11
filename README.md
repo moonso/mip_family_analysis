@@ -76,7 +76,7 @@ If phasing has been done the pairs are not unordered anymore and the delimiter i
 
 ### Autosomal Recessive ###
 
-For this modell an individual can be a carrier, so healthy individuals can be heterozygous. Both alleles need to have the variant for an individual to be sick so a healthy individual can not be homozygous alternative and a sick individual has to be homozygous alternative.
+For this model an individual can be a carrier, so healthy individuals can be heterozygous. Both alleles need to have the variant for an individual to be sick so a healthy individual can not be homozygous alternative and a sick individual has to be homozygous alternative.
 
 1. If individual is healthy:
 	* Can be a carrier so 0/1 is ok
@@ -117,21 +117,51 @@ Same as above but with the difference that one or both of the parents are missin
 
 ### Autosomal Compound Heterozygote ###
 
-Here we are looking at pairs of *heterozygote* variants that are located within the same gene. For two variants to qualify for beeing compound heterozygotes they have to be present together in a affected individual but can **not** be present together in any of the healthy individuals.
+Here we are looking at pairs of *heterozygote* variants that are located within the same gene. For two variants to qualify for being compound pair they have to be present together in a affected individual but can **not** be present together in any of the healthy individuals.
 So *one and only one*, variant should be found in each parent, otherwise the variant follows the pattern of compound heterozygote de novo.
 
-One of the problems here is that a compound hetersozygote can exist in different ways such that they can be deleterious or not.  
+One of the problems here is that a compound heterozygote can exist in different ways such that they can be deleterious or not.  
 If we do not have the phasing information from the individuals, that is if we have not resolved on which alleles the variants that we look at are located on, we can not say if a pair is deleterious or not.
 
 Right now this is how we do this:
 
-
-
-
-
+1. If individual is healthy:
+	* Can be a carrier so 0/1 is ok
+	* Can have ref call or no call so 0/0 and ./. is ok
+	* Can not be homozygote alternative, so 1/1 is NOT ok.
+  	
+  
+2. If individual is sick:
+	* Can be a carrier so 0/1 is not ok.
+	* Can not have ref call, 0/0 is not ok
+	* Must make sure that each of the parents carry one (and only one) of the variants in the potential pair each.
+	* No call, ./., is ok since we can not exclude the model by this.
+    
 ### Autosomal Compound Heterozygote De Novo ###
 
 Same as above but one of the variants are not seen in the parents.
+
+### X Linked ###
+
+These traits are inherited on the x-chromosome, of which men have one allele and women have two. This means that woman's can be carries but men get affected if they get the variant. It is rare that women get these type of disease since they have to inherit a variant from both parents which implies that the father has to be sick. 
+
+1. If individual is healthy:
+	* If woman: can be a carrier so 0/1 is ok
+	* If man: can not be a carrier so 0/1 is not ok
+	* Can have ref call or no call so 0/0 and ./. is ok
+	* Can not be homozygote alternative, so 1/1 is NOT ok.
+  	
+  
+2. If individual is sick:
+	* If woman: can be a carrier so 0/1 is not ok.
+	* Can not have ref call, 0/0 is not ok
+	* No call, ./., is ok since we can not exclude the model by this.
+
+
+
+### X Linked De Novo ###
+
+Same as above but variant is not seen in any of the parents.
 
 ## Detailed Structure ##
 
