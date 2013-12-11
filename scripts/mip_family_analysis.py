@@ -24,7 +24,7 @@ from Mip_Family_Analysis.Models import genetic_models, score_variants
 
 def main():
     parser = argparse.ArgumentParser(description="Parse different kind of ped files.")
-    parser.add_argument('family_file', type=str, nargs=1, help='A pedigree file. Default is ped format.')
+    parser.add_argument('family_file', type=str, nargs=1, help='A pedigree file. Default is cmms format.')
     parser.add_argument('variant_file', type=str, nargs=1, help='A variant file.Default is vcf format')
     
     parser.add_argument('-v', '--verbose', action="store_true", help='Increase output verbosity.')
@@ -47,15 +47,16 @@ def main():
     new_headers = []    
         
     # Start by parsing at the pedigree file:
-    family_type = 'ped'
+    family_type = 'cmms'
     family_file = args.family_file[0]
         
     my_family_parser = family_parser.FamilyParser(family_file, family_type)
     
-    preferred_models = my_family_parser.preferred_models
     
     # Stupid thing but for now when we only look at one family
     my_family = my_family_parser.families.popitem()[1]
+
+    preferred_models = my_family.models_of_inheritance
         
     # Check the variants:
     
