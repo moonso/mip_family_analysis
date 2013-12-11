@@ -57,7 +57,7 @@ class Family(object):
     
     def __str__(self):
         """Print the family members of this family"""
-        family = [individual for individual in self.individuals]
+        family = [individual.individual_id for individual in self.individuals]
         return "\t".join(family)
 
 
