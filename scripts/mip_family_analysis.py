@@ -14,7 +14,7 @@ import os
 import argparse
 import shelve
 import operator
-from multiprocessing import JoinableQueue, Queue, cpu_count
+from multiprocessing import JoinableQueue, Queue, Lock, cpu_count
 from datetime import datetime
 
 from Mip_Family_Analysis.Family import family_parser
@@ -22,48 +22,6 @@ from Mip_Family_Analysis.Variants import variant_parser
 from Mip_Family_Analysis.Models import genetic_models, score_variants
 from Mip_Family_Analysis.Utils import get_genes, variant_consumer
 
-
-# def check_variants(shelve_path, my_family, gene_annotation, args, preferred_models):
-    
-    # start_time_genetic_models = datetime.now()
-    # 
-    # variant_db = shelve.open(shelve_path)
-    # all_variants = {}
-    # 
-    # variants = []
-    # variant_dict = {}
-    # for var_id in variant_db:
-    #     variants.append(variant_db[var_id])
-    # 
-    # variants = genetic_models.check_genetic_models(my_family, variants, gene_annotation, verbose = args.verbose)
-    # 
-    # if args.verbose:
-    #     print 'Models checked!. Time to check models: ', (datetime.now() - start_time_genetic_models)
-    #     print ''
-    #     
-    # # Score the variants
-    # for variant in variants:
-    #     score_variants.score_variant(variant, preferred_models)
-    #     variant_dict[variant.variant_id] = variant
-    # 
-    # # Score the compound pairs:
-    # for variant in variants:
-    #     if len(variant.ar_comp_variants) > 0:
-    #         for compound_variant_id in variant.ar_comp_variants:
-    #             comp_score = variant.rank_score + variant_dict[compound_variant_id].rank_score
-    #             variant.ar_comp_variants[compound_variant_id] = comp_score
-    #     if not args.position:
-    #         all_variants[variant.variant_id] = variant.get_cmms_variant()
-    # 
-    # # Print by position if desired
-    # if args.position:
-    #     for variant in sorted(variants, key=lambda genetic_variant:genetic_variant.start):
-    #         print '\t'.join(variant.get_cmms_variant())
-    # 
-    # variant_db.close()
-    # 
-    # print 'DONE worker:', shelve_path
-    # return
 
 def main():
     parser = argparse.ArgumentParser(description="Parse different kind of ped files.")
@@ -123,12 +81,17 @@ def main():
     header_line = []
     metadata = []
     
+    # The task queue is where all jobs(in this case batches that represents variants in a region) is put
+    # the consumers will then pick their jobs from this queue.
     tasks = JoinableQueue()
+    # The consumers will put their results in the results queue
     results = Queue()
+    # We will need a lock so that the consumers can print their results to screen
+    lock = Lock()
     
     num_consumers = cpu_count() * 2
-    consunmers = [variant_consumer.VariantConsumer(tasks, results) for i in xrange(num_consumers)]
-    for w in consunmers:
+    consumers = [variant_consumer.VariantConsumer(lock, tasks, results, my_family) for i in xrange(num_consumers)]
+    for w in consumers:
         w.start()
     
     num_jobs = 0
@@ -171,7 +134,12 @@ def main():
                             if gene in current_genes:
                                 send = False
                     if send:
-                        tasks.put(variant_parser.variant_parser(batch, header_line,individuals))
+                        # If there is an intergenetic region we do not look at the compounds.
+                        compounds = True
+                        if len(current_genes) == 0:
+                            compunds = False
+                        # The tasks are tuples like (variant_list, bool(if compounds))
+                        tasks.put((variant_parser.variant_parser(batch, header_line, individuals), compounds))
                         num_jobs += 1
                         current_genes = new_genes
                         batch = [line]
@@ -184,18 +152,21 @@ def main():
     # queue_reader_p = Process(target=check_variants, args=((queue),))
     # queue_reader_p.daemon = True
     # queue_reader_p.start()
-    tasks.put(variant_parser.variant_parser(batch, header_line, individuals))
+    compounds = True
+    if len(current_genes) == 0:
+        compunds = False
+    tasks.put((variant_parser.variant_parser(batch, header_line, individuals), compunds))
     num_jobs += 1
     # queue_reader_p.join() # Wait for the analysis to finish
     for i in xrange(num_consumers):
         tasks.put(None)
     
-    tasks.join()
-    
-    while num_jobs:
-        result = results.get()
-        print 'Result: ', result
-        num_jobs -= 1
+    # tasks.join()
+    # 
+    # while num_jobs:
+    #     result = results.get()
+    #     print 'Result: ', result
+    #     num_jobs -= 1
 
 
     if args.verbose:

@@ -60,8 +60,9 @@ from Mip_Family_Analysis.Variants import genotype
 from Mip_Family_Analysis.Utils import pair_generator
 
 
-def check_genetic_models(family, variants, gene_annotation = 'HGNC', max_variants = 200, verbose = False, compound_check = False):
+def check_genetic_models(family, variants, gene_annotation = 'HGNC', max_variants = 200, verbose = False, compound_check = True):
     """Holds the genetic models."""
+    
     #Dictionary with <Gene ID> : [variant_1, variant_2, ...] for controlling the compound heterozygotes
     gene_variants = {}
     
@@ -80,11 +81,11 @@ def check_genetic_models(family, variants, gene_annotation = 'HGNC', max_variant
     
     for variant in variants:
         i += 1
-        variant_id = variant.variant_id
         
-        variant_dict[variant_id] = variant
+        variant_dict[variant.variant_id] = variant
         
         # Only check X-linked for the variants in the X-chromosome:
+        # For X-linked we do not need to check the other models
         if variant.chr == 'X':
             check_x_linked(variant, family)
         else:
@@ -132,8 +133,8 @@ def check_genetic_models(family, variants, gene_annotation = 'HGNC', max_variant
                     # Add the compound pair id to each variant
                     variant_1.ar_comp_variants[variant_2.variant_id] = 0
                     variant_2.ar_comp_variants[variant_1.variant_id] = 0
-                    variant_1.ar_comp = True    
-                    variant_2.ar_comp = True    
+                    variant_1.ar_comp = True
+                    variant_2.ar_comp = True
         if verbose:
             print 'Done with compounds!', datetime.now() - compounds_start
             print 'Number of interesting genes:', interesting_genes

@@ -19,10 +19,12 @@ from Mip_Family_Analysis.Models import genetic_models
 class VariantConsumer(multiprocessing.Process):
     """Yeilds all unordered pairs from a list of objects as tuples, like (obj_1, obj_2)"""
     
-    def __init__(self, task_queue, results_queue):
+    def __init__(self, lock, task_queue, results_queue, family):
         multiprocessing.Process.__init__(self)
         self.batch_queue = task_queue
         self.results_queue = results_queue
+        self.family = family
+        self.lock = lock
     
     def run(self):
         """Run the consuming"""
@@ -34,10 +36,12 @@ class VariantConsumer(multiprocessing.Process):
                 self.batch_queue.task_done()
                 break
             # print '%s: %s' % (proc_name, next_batch)
-            # genetic_models(next_batch)
-            answer = len(next_batch)
+            fixed_variants = genetic_models.check_genetic_models(self.family, next_batch[0], compound_check=next_batch[1])
+            with self.lock:
+                for variant in fixed_variants:
+                    print variant
             self.batch_queue.task_done()
-            self.results_queue.put(answer)
+            # self.results_queue.put(answer)
         return
         
     

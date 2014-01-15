@@ -65,8 +65,7 @@ def variant_parser(variant_batch, header_line, individuals):
             my_genotype = genotype.Genotype(GT=genotype_arguments.get('GT','./.'), AD=genotype_arguments.get('AD','.,.'), DP=genotype_arguments.get('DP','0'), GQ=genotype_arguments.get('GQ','0'))
             my_variant.genotypes[individual] = my_genotype
         variants.append(my_variant)
-    for variant in variants:
-        print variant
+   
     return variants
 
 
