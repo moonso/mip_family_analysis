@@ -60,7 +60,7 @@ from Mip_Family_Analysis.Variants import genotype
 from Mip_Family_Analysis.Utils import pair_generator
 
 
-def check_genetic_models(family, variants, gene_annotation = 'Ensembl', max_variants = 200, verbose = False):
+def check_genetic_models(family, variants, gene_annotation = 'HGNC', max_variants = 200, verbose = False, compound_check = False):
     """Holds the genetic models."""
     #Dictionary with <Gene ID> : [variant_1, variant_2, ...] for controlling the compound heterozygotes
     gene_variants = {}
@@ -105,37 +105,39 @@ def check_genetic_models(family, variants, gene_annotation = 'Ensembl', max_vari
     if verbose:
         print 'Done with normal models', datetime.now() - normal_models
         print ''
-        print 'Check compounds:'
 
-    compounds_start = datetime.now()
-    
+    if compound_check:
     # Check all compound candidates:
+        if verbose:
+            print 'Check compounds:'
+            compounds_start = datetime.now()
     
-    interesting_genes = 0
-    interesting_variants = 0
-    more_than_20 = 0
-    for gene_id in gene_variants:
-    # If there are more than one variant in a gene we start to look for compounds.
-        if len(gene_variants[gene_id]) > 1:
-            if len(gene_variants[gene_id]) < max_variants:
-                interesting_genes += 1
-                interesting_variants += len(gene_variants[gene_id])
-                # Send the gene id and its list of variants
-                compound_pairs = check_compound(gene_id, gene_variants[gene_id], family)
-            else:
-                genes_with_many_variants.append(gene_id)
-            for pair in compound_pairs:
-                variant_1 = variant_dict[pair[0]]
-                variant_2 = variant_dict[pair[1]]
-                # Add the compound pair id to each variant
-                variant_1.ar_comp_variants[variant_2.variant_id] = 0
-                variant_2.ar_comp_variants[variant_1.variant_id] = 0
-                variant_1.ar_comp = True    
-                variant_2.ar_comp = True    
-    if verbose:
-        print 'Done with compounds!', datetime.now() - compounds_start
-        print 'Number of interesting genes:', interesting_genes
-        print 'Number of interesting variants:', interesting_variants
+    
+        interesting_genes = 0
+        interesting_variants = 0
+        more_than_20 = 0
+        for gene_id in gene_variants:
+        # If there are more than one variant in a gene we start to look for compounds.
+            if len(gene_variants[gene_id]) > 1:
+                if len(gene_variants[gene_id]) < max_variants:
+                    interesting_genes += 1
+                    interesting_variants += len(gene_variants[gene_id])
+                    # Send the gene id and its list of variants
+                    compound_pairs = check_compound(gene_id, gene_variants[gene_id], family)
+                else:
+                    genes_with_many_variants.append(gene_id)
+                for pair in compound_pairs:
+                    variant_1 = variant_dict[pair[0]]
+                    variant_2 = variant_dict[pair[1]]
+                    # Add the compound pair id to each variant
+                    variant_1.ar_comp_variants[variant_2.variant_id] = 0
+                    variant_2.ar_comp_variants[variant_1.variant_id] = 0
+                    variant_1.ar_comp = True    
+                    variant_2.ar_comp = True    
+        if verbose:
+            print 'Done with compounds!', datetime.now() - compounds_start
+            print 'Number of interesting genes:', interesting_genes
+            print 'Number of interesting variants:', interesting_variants
     for variant in variants:
         variant.check_models()
     return variants

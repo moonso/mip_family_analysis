@@ -14,55 +14,56 @@ import os
 import argparse
 import shelve
 import operator
-import multiprocessing
+from multiprocessing import JoinableQueue, Queue, cpu_count
 from datetime import datetime
 
 from Mip_Family_Analysis.Family import family_parser
 from Mip_Family_Analysis.Variants import variant_parser
 from Mip_Family_Analysis.Models import genetic_models, score_variants
+from Mip_Family_Analysis.Utils import get_genes, variant_consumer
 
-def check_variants(shelve_path, my_family, gene_annotation, args, preferred_models):
-    """Check all variants in a shelve."""
-    
-    start_time_genetic_models = datetime.now()
-    
-    variant_db = shelve.open(shelve_path)
-    all_variants = {}
-    
-    variants = []
-    variant_dict = {}
-    for var_id in variant_db:
-        variants.append(variant_db[var_id])
-    
-    variants = genetic_models.check_genetic_models(my_family, variants, gene_annotation, verbose = args.verbose)
-    
-    if args.verbose:
-        print 'Models checked!. Time to check models: ', (datetime.now() - start_time_genetic_models)
-        print ''
-        
-    # Score the variants
-    for variant in variants:
-        score_variants.score_variant(variant, preferred_models)
-        variant_dict[variant.variant_id] = variant
 
-    # Score the compound pairs:
-    for variant in variants:
-        if len(variant.ar_comp_variants) > 0:
-            for compound_variant_id in variant.ar_comp_variants:
-                comp_score = variant.rank_score + variant_dict[compound_variant_id].rank_score
-                variant.ar_comp_variants[compound_variant_id] = comp_score
-        if not args.position:
-            all_variants[variant.variant_id] = variant.get_cmms_variant()
+# def check_variants(shelve_path, my_family, gene_annotation, args, preferred_models):
     
-    # Print by position if desired
-    if args.position:
-        for variant in sorted(variants, key=lambda genetic_variant:genetic_variant.start):
-            print '\t'.join(variant.get_cmms_variant())
-    
-    variant_db.close()
-    
-    print 'DONE worker:', shelve_path
-    return
+    # start_time_genetic_models = datetime.now()
+    # 
+    # variant_db = shelve.open(shelve_path)
+    # all_variants = {}
+    # 
+    # variants = []
+    # variant_dict = {}
+    # for var_id in variant_db:
+    #     variants.append(variant_db[var_id])
+    # 
+    # variants = genetic_models.check_genetic_models(my_family, variants, gene_annotation, verbose = args.verbose)
+    # 
+    # if args.verbose:
+    #     print 'Models checked!. Time to check models: ', (datetime.now() - start_time_genetic_models)
+    #     print ''
+    #     
+    # # Score the variants
+    # for variant in variants:
+    #     score_variants.score_variant(variant, preferred_models)
+    #     variant_dict[variant.variant_id] = variant
+    # 
+    # # Score the compound pairs:
+    # for variant in variants:
+    #     if len(variant.ar_comp_variants) > 0:
+    #         for compound_variant_id in variant.ar_comp_variants:
+    #             comp_score = variant.rank_score + variant_dict[compound_variant_id].rank_score
+    #             variant.ar_comp_variants[compound_variant_id] = comp_score
+    #     if not args.position:
+    #         all_variants[variant.variant_id] = variant.get_cmms_variant()
+    # 
+    # # Print by position if desired
+    # if args.position:
+    #     for variant in sorted(variants, key=lambda genetic_variant:genetic_variant.start):
+    #         print '\t'.join(variant.get_cmms_variant())
+    # 
+    # variant_db.close()
+    # 
+    # print 'DONE worker:', shelve_path
+    # return
 
 def main():
     parser = argparse.ArgumentParser(description="Parse different kind of ped files.")
@@ -81,7 +82,9 @@ def main():
     
     args = parser.parse_args()
     
-    gene_annotation = 'Ensembl'
+    gene_annotation = 'HGNC'
+    
+    # If gene annotation is manually given:
     
     if args.gene_annotation:
        gene_annotation = args.gene_annotation[0]
@@ -111,84 +114,162 @@ def main():
     
     var_file = args.variant_file[0]
     file_name, file_extension = os.path.splitext(var_file)
+    
+    individuals = []
+    for ind in my_family.individuals:
+        individuals.append(ind.individual_id)
         
     var_type = 'cmms'        
+    header_line = []
+    metadata = []
+    
+    tasks = JoinableQueue()
+    results = Queue()
+    
+    num_consumers = cpu_count() * 2
+    consunmers = [variant_consumer.VariantConsumer(tasks, results) for i in xrange(num_consumers)]
+    for w in consunmers:
+        w.start()
+    
+    num_jobs = 0
+    with open(var_file, 'r') as f:
         
-    my_variant_parser = variant_parser.VariantParser(var_file, var_type)
+        beginning = True
+        batch = [] # This is a list to store the variant lines of a batch
+        current_genes = []  # These are lists to keep track of the regions that we look at
+        new_region = []
+        
+        for line in f:
+            line = line.rstrip()
+            if line[:2] == '##':
+                #This is the metadata information
+                metadata.append(line)
+            elif line[:1] == '#':
+                header_line = line[1:].split('\t')
+            else:
+                #These are variant lines
+                                
+                splitted_line = line.split('\t')
+                ensemble_entry = splitted_line[5]
+                hgnc_entry = splitted_line[6]
+                new_genes = get_genes.get_genes(hgnc_entry, 'HGNC')
+                
+                # If we look at the first variant, setup boundary conditions:
+                if beginning:
+                    current_genes = new_genes
+                    beginning = False
+                    batch.append(line) # Add variant line to batch
+                # Now we have a new list of genes            
+                else:
+                    send = True
+                    #Check if we are in a space between genes:
+                    if len(new_genes) == 0:
+                        if len(current_genes) == 0:
+                            send = False
+                    else:
+                        for gene in new_genes:
+                            if gene in current_genes:
+                                send = False
+                    if send:
+                        tasks.put(variant_parser.variant_parser(batch, header_line,individuals))
+                        num_jobs += 1
+                        current_genes = new_genes
+                        batch = [line]
+                        # queue_reader_p.join() # Wait for the analysis to finish
+                        # batch.append(line) # Add variant line to batch
+                    else:
+                        current_genes = list(set(current_genes) | set(new_genes))
+                        batch.append(line) # Add variant line to batch
+    # queue = Queue()
+    # queue_reader_p = Process(target=check_variants, args=((queue),))
+    # queue_reader_p.daemon = True
+    # queue_reader_p.start()
+    tasks.put(variant_parser.variant_parser(batch, header_line, individuals))
+    num_jobs += 1
+    # queue_reader_p.join() # Wait for the analysis to finish
+    for i in xrange(num_consumers):
+        tasks.put(None)
+    
+    tasks.join()
+    
+    while num_jobs:
+        result = results.get()
+        print 'Result: ', result
+        num_jobs -= 1
 
 
     if args.verbose:
         print 'Variants done!. Time to parse variants: ', (datetime.now() - start_time_variant_parsing)
         print ''
-
-    # Add info about variant file:
-    new_headers = my_variant_parser.header_lines 
-    
-    # Add new headers:
-    
-    new_headers.append('Inheritance_model')
-    new_headers.append('Compounds')
-    new_headers.append('Rank_score')
-    
-    
-    if args.verbose:
-        print 'Checking genetic models...'
-        print ''
-    
-    for data in my_variant_parser.metadata:
-        print data
-    
-    print '#'+'\t'.join(new_headers)
-    
-    if not args.position:
-        all_variants = {}
-    
-    # Check the genetic models
-    
-    jobs=[]
-    
-    for chrom in my_variant_parser.chrom_shelves:
-        
-        shelve_directory = os.path.split(my_variant_parser.chrom_shelves[chrom])[0]
-        current_shelve = my_variant_parser.chrom_shelves[chrom]
-        
-        p = multiprocessing.Process(target=check_variants, args=(current_shelve, my_family, gene_annotation, args, preferred_models))
-        jobs.append(p)
-        p.start()
-    
-    for job in jobs:
-        job.join()
-    
-    # Print all variants:
-    
-    for chrom in my_variant_parser.chrom_shelves:
-        
-        variants = []        
-        variant_db = shelve.open(my_variant_parser.chrom_shelves[chrom])
-        
-        for var_id in variant_db:
-            variants.append(variant_db[var_id])
-            
-        for variant in sorted(variants, key=lambda genetic_variant:genetic_variant.start):
-            pass
-            # print '\t'.join(variant.get_cmms_variant())
-    
-    
-        os.remove(my_variant_parser.chrom_shelves[chrom])
-    os.removedirs(shelve_directory)
-
-    # Else print by rank score:
+    # 
+    # # Add info about variant file:
+    # new_headers = my_variant_parser.header_lines 
+    # 
+    # # Add new headers:
+    # 
+    # new_headers.append('Inheritance_model')
+    # new_headers.append('Compounds')
+    # new_headers.append('Rank_score')
+    # 
+    # 
+    # if args.verbose:
+    #     print 'Checking genetic models...'
+    #     print ''
+    # 
+    # for data in my_variant_parser.metadata:
+    #     print data
+    # 
+    # print '#'+'\t'.join(new_headers)
+    # 
     # if not args.position:
-    #     for variant in sorted(all_variants.iteritems(), key=lambda (k,v): int(operator.itemgetter(-1)(v)), reverse=True):
-    #         if args.treshold:
-    #             rank_score = int(variant[-1][-1])
-    #             if rank_score >= args.treshold[0]:
-    #                 print '\t'.join(variant[1])
-    #         else:
-                # print '\t'.join(variant[1])
-    if args.verbose:
-        print 'Finished analysis!'
-        print 'Time for analysis', (datetime.now() - start_time_variant_parsing)
+    #     all_variants = {}
+    # 
+    # # Check the genetic models
+    # 
+    # jobs=[]
+    # 
+    # for chrom in my_variant_parser.chrom_shelves:
+    #     
+    #     shelve_directory = os.path.split(my_variant_parser.chrom_shelves[chrom])[0]
+    #     current_shelve = my_variant_parser.chrom_shelves[chrom]
+    #     
+    #     p = multiprocessing.Process(target=check_variants, args=(current_shelve, my_family, gene_annotation, args, preferred_models))
+    #     jobs.append(p)
+    #     p.start()
+    # 
+    # for job in jobs:
+    #     job.join()
+    # 
+    # # Print all variants:
+    # 
+    # for chrom in my_variant_parser.chrom_shelves:
+    #     
+    #     variants = []        
+    #     variant_db = shelve.open(my_variant_parser.chrom_shelves[chrom])
+    #     
+    #     for var_id in variant_db:
+    #         variants.append(variant_db[var_id])
+    #         
+    #     for variant in sorted(variants, key=lambda genetic_variant:genetic_variant.start):
+    #         pass
+    #         # print '\t'.join(variant.get_cmms_variant())
+    # 
+    # 
+    #     os.remove(my_variant_parser.chrom_shelves[chrom])
+    # os.removedirs(shelve_directory)
+    # 
+    # # Else print by rank score:
+    # # if not args.position:
+    # #     for variant in sorted(all_variants.iteritems(), key=lambda (k,v): int(operator.itemgetter(-1)(v)), reverse=True):
+    # #         if args.treshold:
+    # #             rank_score = int(variant[-1][-1])
+    # #             if rank_score >= args.treshold[0]:
+    # #                 print '\t'.join(variant[1])
+    # #         else:
+    #             # print '\t'.join(variant[1])
+    # if args.verbose:
+    #     print 'Finished analysis!'
+    #     print 'Time for analysis', (datetime.now() - start_time_variant_parsing)
 
 
 

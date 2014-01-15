@@ -190,6 +190,10 @@ class Variant(object):
             key_word = 'HGNC_symbol'
             delimiter = ','
             genes = self.all_info.get(key_word, '').split(delimiter)
+            for gene in genes:
+                if 'dist' in gene:
+                    genes = []
+            
         if genes == ['-']:
             genes = []
         return genes
