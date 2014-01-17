@@ -20,7 +20,7 @@ from datetime import datetime
 from Mip_Family_Analysis.Family import family_parser
 from Mip_Family_Analysis.Variants import variant_parser
 from Mip_Family_Analysis.Models import genetic_models, score_variants
-from Mip_Family_Analysis.Utils import get_genes, variant_consumer
+from Mip_Family_Analysis.Utils import variant_consumer
 
 
 def main():
@@ -90,78 +90,17 @@ def main():
     lock = Lock()
     
     num_consumers = cpu_count() * 2
-    consumers = [variant_consumer.VariantConsumer(lock, tasks, results, my_family) for i in xrange(num_consumers)]
+    consumers = [genetic_models.ModelChecker(lock, tasks, results, my_family, args.verbose) for i in xrange(num_consumers)]
+    
     for w in consumers:
         w.start()
     
-    num_jobs = 0
-    with open(var_file, 'r') as f:
-        
-        beginning = True
-        batch = [] # This is a list to store the variant lines of a batch
-        current_genes = []  # These are lists to keep track of the regions that we look at
-        new_region = []
-        
-        for line in f:
-            line = line.rstrip()
-            if line[:2] == '##':
-                #This is the metadata information
-                metadata.append(line)
-            elif line[:1] == '#':
-                header_line = line[1:].split('\t')
-            else:
-                #These are variant lines
-                                
-                splitted_line = line.split('\t')
-                ensemble_entry = splitted_line[5]
-                hgnc_entry = splitted_line[6]
-                new_genes = get_genes.get_genes(hgnc_entry, 'HGNC')
-                
-                # If we look at the first variant, setup boundary conditions:
-                if beginning:
-                    current_genes = new_genes
-                    beginning = False
-                    batch.append(line) # Add variant line to batch
-                # Now we have a new list of genes            
-                else:
-                    send = True
-                    #Check if we are in a space between genes:
-                    if len(new_genes) == 0:
-                        if len(current_genes) == 0:
-                            send = False
-                    else:
-                        for gene in new_genes:
-                            if gene in current_genes:
-                                send = False
-                    if send:
-                        # If there is an intergenetic region we do not look at the compounds.
-                        compounds = True
-                        if len(current_genes) == 0:
-                            compunds = False
-                        # The tasks are tuples like (variant_list, bool(if compounds))
-                        tasks.put((variant_parser.variant_parser(batch, header_line, individuals), compounds))
-                        num_jobs += 1
-                        current_genes = new_genes
-                        batch = [line]
-                        # queue_reader_p.join() # Wait for the analysis to finish
-                        # batch.append(line) # Add variant line to batch
-                    else:
-                        current_genes = list(set(current_genes) | set(new_genes))
-                        batch.append(line) # Add variant line to batch
-    # queue = Queue()
-    # queue_reader_p = Process(target=check_variants, args=((queue),))
-    # queue_reader_p.daemon = True
-    # queue_reader_p.start()
-    compounds = True
-    if len(current_genes) == 0:
-        compunds = False
-    tasks.put((variant_parser.variant_parser(batch, header_line, individuals), compunds))
-    num_jobs += 1
-    # queue_reader_p.join() # Wait for the analysis to finish
+    var_parser = variant_parser.VariantParser(var_file, tasks, individuals)
+    
     for i in xrange(num_consumers):
         tasks.put(None)
     
-    # tasks.join()
+    tasks.join()
     # 
     # while num_jobs:
     #     result = results.get()

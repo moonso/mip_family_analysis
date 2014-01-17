@@ -54,15 +54,14 @@ def get_genes(gene_string, gene_annotation = 'Ensembl'):
                 for entry in semi_splitted:
                     parse_gene(entry)
         
-        if 'dist' in gene_string:
-            genes = []
-        elif 'NONE' in gene_string:
-            genes = []
+        if 'dist' in gene_string or 'NONE' in gene_string:
+            genes = ['-']
         else:
             parse_gene(gene_string)
         
-    if genes == ['-']:
-        genes = []
+    if len(genes) == 0:
+        genes = ['-']
+     
     return genes    
 
 def main():

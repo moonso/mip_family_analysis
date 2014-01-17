@@ -71,7 +71,7 @@ from collections import OrderedDict
 
 class Variant(object):
     """This class holds the necessary information about a genetic variant."""
-    def __init__(self, chrom, start, stop, reference, alternative, identity='.', all_info = OrderedDict()):
+    def __init__(self, chrom, start, stop, reference, alternative, identity='.', genes = [], all_info = OrderedDict()):
         super(Variant, self).__init__()
         # Properties:
         self.chr = ''
@@ -82,6 +82,7 @@ class Variant(object):
         self.variant_id = ''
         self.identity = ''
         self.all_info = all_info
+        self.genes = genes
         self.genotypes = {} # Dict with {'ind_id':<Genotype>, 'ind_id':<Genotype>, ...}
 
         # If chromosome name is like Chr3 or chr5 we change to 3 or 5
@@ -137,6 +138,7 @@ class Variant(object):
             self.x_linked_dn = False
         #If following Autosomal Recessive compound pattern for certain genes. DICT with {<Gene_ID>: [var_id_1, var_id_2, ...]]}
         self.ar_comp = False
+        self.ar_comp_dn = False
         self.ar_comp_variants = {}#Dict with {variant_id:pair_score}
         
         # self.ar_comp_dn = True #If following Autosomal Recessive Compound De Novo pattern BOOL
@@ -171,33 +173,7 @@ class Variant(object):
         cmms_info.append(':'.join(compound_variants))
         cmms_info.append(str(self.rank_score))
         return cmms_info
-        
-    def get_genes(self, gene_annotation = 'Ensembl'):
-        """Return a list with the genes that this variant is present in.
-        gene_annotation in ['Ensembl', 'HGNC']"""
-        genes = []
-        if gene_annotation == 'Ensembl':
-            key_word = 'Ensemble_gene_id'
-            delimiter = ';'
-            genes = self.all_info.get(key_word, '')
-            if len(genes) > 1:
-                if delimiter == genes[-1]:
-                    genes = genes.split(delimiter)[:-1]
-            else:
-                genes = genes.split()
-                
-        elif gene_annotation == 'HGNC':
-            key_word = 'HGNC_symbol'
-            delimiter = ','
-            genes = self.all_info.get(key_word, '').split(delimiter)
-            for gene in genes:
-                if 'dist' in gene:
-                    genes = []
             
-        if genes == ['-']:
-            genes = []
-        return genes
-    
     def get_genotype(self, ind_id):
         """Return the genotype for a certain individual. Return a nocall if not existing."""
         return self.genotypes.get(ind_id, genotype.Genotype())
@@ -239,6 +215,8 @@ class Variant(object):
         #         variant_info.append(self.all_info[entry])
         variant_info.append(models)
         variant_info.append(str(self.rank_score))
+        variant_info.append(', '.join(self.genes))
+        variant_info.append(', '.join(self.ar_comp_variants.keys()))
         return '\t'.join(variant_info)
     
 
