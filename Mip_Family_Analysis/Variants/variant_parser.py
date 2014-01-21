@@ -42,7 +42,6 @@ class VariantParser(object):
             batch = {} # This is a dictionary to store the variant lines of a batch
             current_genes = []  # These are lists to keep track of the regions that we look at
             new_region = []
-        
             for line in f:
                 line = line.rstrip()
                 if line[:2] == '##':

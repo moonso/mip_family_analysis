@@ -95,6 +95,7 @@ def main():
     for w in consumers:
         w.start()
     
+    print 'HJE!!!'
     var_parser = variant_parser.VariantParser(var_file, tasks, individuals)
     
     for i in xrange(num_consumers):
