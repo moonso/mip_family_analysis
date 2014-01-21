@@ -30,16 +30,21 @@ class VariantConsumer(multiprocessing.Process):
         """Run the consuming"""
         proc_name = self.name
         while True:
+            # A batch is a dictionary on the form {gene:{variant_id:variant}}
             next_batch = self.batch_queue.get()
             if next_batch is None:
                 print '%s: Exiting' % proc_name
                 self.batch_queue.task_done()
                 break
             # print '%s: %s' % (proc_name, next_batch)
-            fixed_variants = genetic_models.check_genetic_models(self.family, next_batch[0], compound_check=next_batch[1])
+            genetic_models.check_genetic_models(self.family, next_batch[0], compound_check=next_batch[1])
+            fixed_variants = {}
+            for gene, variant_dict in next_batch.items():
+                for variant_id, variant in variant_dict.items():
+                    fixed_variant[variant_id] = variant
             with self.lock:
-                for variant in fixed_variants:
-                    print variant
+                for variant_id in fixed_variants:
+                    print fixed_variant[variant_id]
             self.batch_queue.task_done()
             # self.results_queue.put(answer)
         return
