@@ -17,10 +17,10 @@ import operator
 from multiprocessing import JoinableQueue, Queue, Lock, cpu_count
 from datetime import datetime
 
-from Mip_Family_Analysis.Family import family_parser
-from Mip_Family_Analysis.Variants import variant_parser
-from Mip_Family_Analysis.Models import genetic_models, score_variants
-from Mip_Family_Analysis.Utils import variant_consumer
+from mip_family_analysis.family import family_parser
+from mip_family_analysis.variants import variant_parser
+from mip_family_analysis.models import genetic_models, score_variants
+from mip_family_analysis.utils import variant_consumer
 
 
 def main():

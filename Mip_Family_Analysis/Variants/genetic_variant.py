@@ -65,8 +65,8 @@ Copyright (c) 2012 __MyCompanyName__. All rights reserved.
 
 import sys
 import os
-from Mip_Family_Analysis.Utils.is_number import is_number
-from Mip_Family_Analysis.Variants import genotype
+from mip_family_analysis.utils.is_number import is_number
+from mip_family_analysis.variants import genotype
 from collections import OrderedDict
 
 class Variant(object):

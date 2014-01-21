@@ -6,12 +6,12 @@ except ImportError:
     from distutils.core import setup
 
 
-setup(name="Mip_Family_Analysis",
+setup(name="mip_family_analysis",
 	version="0.3",
 	author="Mans Magnusson",
 	author_email="mans.magnusson@scilifelab.se",
 	description=("A new tool for doing inheritance analysis and scoring in the mip pipeline."),
 	long_description = open('README.md', 'r').read(),
-    packages=['Mip_Family_Analysis', 'Mip_Family_Analysis.Utils', 'Mip_Family_Analysis.Variants', 'Mip_Family_Analysis.Family', 'Mip_Family_Analysis.Models'],
+    packages=['mip_family_analysis', 'mip_family_Analysis.utils', 'mip_family_analysis.variants', 'mip_family_analysis.family', 'mip_family_analysis.models'],
     scripts=['scripts/mip_family_analysis.py'],
 )

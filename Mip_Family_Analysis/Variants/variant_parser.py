@@ -18,8 +18,8 @@ import os
 import argparse
 import shelve
 import tempfile
-from Mip_Family_Analysis.Variants import genetic_variant, genotype
-from Mip_Family_Analysis.Utils import get_genes
+from mip_family_analysis.variants import genetic_variant, genotype
+from mip_family_analysis.utils import get_genes
 from collections import OrderedDict
 
 

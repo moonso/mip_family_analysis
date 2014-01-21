@@ -14,7 +14,7 @@ Copyright (c) 2013 __MyCompanyName__. All rights reserved.
 import sys
 import os
 import multiprocessing
-from Mip_Family_Analysis.Models import genetic_models
+from mip_family_analysis.models import genetic_models
 
 class VariantConsumer(multiprocessing.Process):
     """Yeilds all unordered pairs from a list of objects as tuples, like (obj_1, obj_2)"""
@@ -39,6 +39,7 @@ class VariantConsumer(multiprocessing.Process):
             # print '%s: %s' % (proc_name, next_batch)
             genetic_models.check_genetic_models(self.family, next_batch[0], compound_check=next_batch[1])
             fixed_variants = {}
+            print 'HALLÅÅÅ!!!'
             for gene, variant_dict in next_batch.items():
                 for variant_id, variant in variant_dict.items():
                     fixed_variant[variant_id] = variant

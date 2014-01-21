@@ -57,8 +57,8 @@ import sys
 from collections import Counter
 from datetime import datetime
 from multiprocessing import Process
-from Mip_Family_Analysis.Variants import genotype
-from Mip_Family_Analysis.Utils import pair_generator
+from mip_family_analysis.variants import genotype
+from mip_family_analysis.utils import pair_generator
 from time import sleep
 
 class ModelChecker(Process):

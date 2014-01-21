@@ -31,7 +31,7 @@ Copyright (c) 2013 __MyCompanyName__. All rights reserved.
 import sys
 import os
 import argparse
-from Mip_Family_Analysis.Family import family, individual
+from mip_family_analysis.family import family, individual
 
 class FamilyParser(object):
     """Parses a file with family info and creates a family object with individuals."""
