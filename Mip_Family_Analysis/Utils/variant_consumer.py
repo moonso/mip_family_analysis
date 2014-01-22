@@ -25,6 +25,7 @@ class VariantConsumer(multiprocessing.Process):
         self.results_queue = results_queue
         self.family = family
         self.lock = lock
+        print 'HALLÅÅÅ!!!'
     
     def run(self):
         """Run the consuming"""
@@ -39,7 +40,6 @@ class VariantConsumer(multiprocessing.Process):
             # print '%s: %s' % (proc_name, next_batch)
             genetic_models.check_genetic_models(self.family, next_batch[0], compound_check=next_batch[1])
             fixed_variants = {}
-            print 'HALLÅÅÅ!!!'
             for gene, variant_dict in next_batch.items():
                 for variant_id, variant in variant_dict.items():
                     fixed_variant[variant_id] = variant
