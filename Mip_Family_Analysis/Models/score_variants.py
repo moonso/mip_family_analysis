@@ -70,7 +70,7 @@ def score_variant(variant_object, genetic_models = ['AR_hom', 'AD']):
     score += check_segmental_duplication(segdup)
     score += check_hgmd(hgmd)
     variant_object.rank_score = score
-    
+    return
     # return variant_object
     
 def check_inheritance(variant_models, genetic_models):

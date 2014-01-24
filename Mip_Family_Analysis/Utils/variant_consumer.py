@@ -14,18 +14,19 @@ Copyright (c) 2013 __MyCompanyName__. All rights reserved.
 import sys
 import os
 import multiprocessing
-from mip_family_analysis.models import genetic_models
+
+from mip_family_analysis.models import genetic_models, score_variants
 
 class VariantConsumer(multiprocessing.Process):
     """Yeilds all unordered pairs from a list of objects as tuples, like (obj_1, obj_2)"""
     
-    def __init__(self, lock, task_queue, results_queue, family):
+    def __init__(self, lock, task_queue, family, file_handle = None, verbosity = False):
         multiprocessing.Process.__init__(self)
         self.batch_queue = task_queue
-        self.results_queue = results_queue
         self.family = family
         self.lock = lock
-        print 'HALLÅÅÅ!!!'
+        self.outfile = file_handle
+        
     
     def run(self):
         """Run the consuming"""
@@ -34,20 +35,26 @@ class VariantConsumer(multiprocessing.Process):
             # A batch is a dictionary on the form {gene:{variant_id:variant}}
             next_batch = self.batch_queue.get()
             if next_batch is None:
-                print '%s: Exiting' % proc_name
+                # print '%s: Exiting' % proc_name
                 self.batch_queue.task_done()
                 break
             # print '%s: %s' % (proc_name, next_batch)
-            genetic_models.check_genetic_models(self.family, next_batch[0], compound_check=next_batch[1])
+            genetic_models.check_genetic_models(next_batch, self.family)
             fixed_variants = {}
             for gene, variant_dict in next_batch.items():
                 for variant_id, variant in variant_dict.items():
-                    fixed_variant[variant_id] = variant
+                    fixed_variants[variant_id] = variant
+            
+            for variant_id in fixed_variants:
+                score_variants.score_variant(fixed_variants[variant_id], self.family.models_of_inheritance)
+                    
             with self.lock:
                 for variant_id in fixed_variants:
-                    print fixed_variant[variant_id]
+                    if self.outfile:
+                        self.outfile.write('\t'.join(fixed_variants[variant_id].get_cmms_variant())+'\n')
+                    else:
+                        print '\t'.join(fixed_variants[variant_id].get_cmms_variant())
             self.batch_queue.task_done()
-            # self.results_queue.put(answer)
         return
         
     

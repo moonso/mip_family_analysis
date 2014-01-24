@@ -17,13 +17,11 @@ import operator
 from multiprocessing import JoinableQueue, Queue, Lock, cpu_count
 from datetime import datetime
 from pprint import pprint as pp
-pp(sys.path)
 
 from mip_family_analysis.family import family_parser
 from mip_family_analysis.variants import variant_parser
 from mip_family_analysis.models import genetic_models, score_variants
 from mip_family_analysis.utils import variant_consumer
-
 
 def main():
     parser = argparse.ArgumentParser(description="Parse different kind of ped files.")
@@ -91,29 +89,35 @@ def main():
     # We will need a lock so that the consumers can print their results to screen
     lock = Lock()
     
+    temp_file = 'results.tmp'
+    file_handle = open(temp_file, 'w')
+    
     num_consumers = cpu_count() * 2
-    consumers = [genetic_models.ModelChecker(lock, tasks, results, my_family, args.verbose) for i in xrange(num_consumers)]
+    consumers = [variant_consumer.VariantConsumer(lock, tasks, my_family, 
+                    file_handle, args.verbose) for i in xrange(num_consumers)]
     
     for w in consumers:
         w.start()
     
-    print 'HJE!!!'
     var_parser = variant_parser.VariantParser(var_file, tasks, individuals)
     
     for i in xrange(num_consumers):
         tasks.put(None)
     
     tasks.join()
-    # 
-    # while num_jobs:
-    #     result = results.get()
-    #     print 'Result: ', result
-    #     num_jobs -= 1
-
+    
+    file_handle.close()
 
     if args.verbose:
         print 'Variants done!. Time to parse variants: ', (datetime.now() - start_time_variant_parsing)
         print ''
+        print 'Start sorting the variants:'
+        start_time_variant_sorting = datetime.now()
+        
+    if args.verbose:
+        print 'Variants done!. Time to parse variants: ', (datetime.now() - start_time_variant_parsing)
+        print ''
+    
     # 
     # # Add info about variant file:
     # new_headers = my_variant_parser.header_lines 

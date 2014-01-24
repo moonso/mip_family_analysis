@@ -5,6 +5,7 @@ file_sorter.py
 
 Sort a variant file based on position or rank score.
 
+
 Created by Tomasz Beiruta on 2005-05-31.
 Modified by Måns Magnusson on 2014-01-14.
 
@@ -14,17 +15,29 @@ import sys
 import os
 import argparse
 
+from genmod.utils.is_number import is_number
+
+
 class FileSort(object):
-    def __init__(self, inFile, outFile=None, splitSize=20):
+    def __init__(self, inFile, outFile=None, sort_mode = 'rank', splitSize=20):
         """ split size (in MB) """
         self._inFile = inFile
+        print self._inFile
+        
         if outFile is None:
-            self._outFile = inFile
+            self.print_to_screen = True
         else:
             self._outFile = outFile
+            self.print_to_screen = False
                     
         self._splitSize = splitSize * 1000000
-        self._getKey = lambda variant_line: int(variant_line.rstrip().split('\t')[-1])
+                
+        if sort_mode == 'rank':
+            # To sort a CMMS-file on rank score
+            self._getKey = lambda variant_line: int(variant_line.rstrip().split('\t')[-1])
+        else:
+            # to sort a vcf-file on positions
+            self._getKey = lambda variant_line: int(variant_line.rstrip().split('\t')[1])
     
     def sort(self):
         files = self._splitFile()
@@ -44,13 +57,20 @@ class FileSort(object):
     def _sortFile(self, fileName, outFile=None):
         lines = open(fileName).readlines()
         get_key = self._getKey
+        for line in lines:
+            if not is_number(line.rstrip().split('\t')[-1]):
+                print line
+            elif line.rstrip().split('\t')[-1] == '12':
+                print line
+            
+            
         data = [(get_key(line), line) for line in lines if line!='']
         data.sort(reverse=True)
-        lines = [line[1] for line in data]        
+        lines = [line[1] for line in data]
         if outFile is not None:
             open(outFile, 'w').write(''.join(lines))
         else:
-            open(fileName, 'w').write(''.join(lines))
+            print ''.join(lines)
     
     
 
@@ -101,7 +121,8 @@ class FileSort(object):
         buff = []
         buffSize = self._splitSize/2
         append = buff.append
-        output = open(self._outFile,'w')
+        if not self.print_to_screen:
+            output = open(self._outFile,'w')
         try:
             key = max(keys)
             index = keys.index(key)
@@ -110,7 +131,10 @@ class FileSort(object):
                 while key == max(keys):
                     append(lines[index])
                     if len(buff) > buffSize:
-                        output.write(''.join(buff))
+                        if self.print_to_screen:
+                            print ''.join(buff)
+                        else:
+                            output.write(''.join(buff))
                         del buff[:]
                             
                     line = files[index].readline()
@@ -131,7 +155,10 @@ class FileSort(object):
                 index = keys.index(key)
 
             if len(buff)>0:
-                output.write(''.join(buff))
+                if self.print_to_screen:
+                    print ''.join(buff)
+                else:
+                    output.write(''.join(buff))
         finally:    
             output.close()
 
@@ -147,7 +174,10 @@ def main():
     parser.add_argument('-out', '--outfile', type=str, nargs=1, help='Specify the path to the outfile.')
     args = parser.parse_args()
     infile = args.infile[0]
-    outfile = args.outfile[0]
+    if args.outfile:
+        outfile = args.outfile[0]
+    else:
+        outfile = None
     fs = FileSort(infile, outfile)
     fs.sort()
                     
