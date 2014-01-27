@@ -55,6 +55,7 @@ Copyright (c) 2013 __MyCompanyName__. All rights reserved.
 import os
 import sys
 from datetime import datetime
+
 from Mip_Family_Analysis.Variants import genotype
 from Mip_Family_Analysis.Utils import pair_generator
 

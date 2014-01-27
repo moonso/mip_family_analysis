@@ -22,6 +22,7 @@ Copyright (c) 2012 __MyCompanyName__. All rights reserved.
 
 import sys
 import os
+
 from Mip_Family_Analysis.Variants import genotype
 
 

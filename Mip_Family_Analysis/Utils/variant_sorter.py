@@ -15,7 +15,7 @@ import sys
 import os
 import argparse
 
-from genmod.utils.is_number import is_number
+from Mip_Family_Analysis.Utils.is_number import is_number
 
 
 class FileSort(object):

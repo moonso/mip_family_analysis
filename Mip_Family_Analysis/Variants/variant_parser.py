@@ -18,9 +18,13 @@ import os
 import argparse
 import shelve
 from datetime import datetime
-from mip_family_analysis.variants import genetic_variant, genotype
-from mip_family_analysis.utils import get_genes
-from collections import OrderedDict
+if sys.version_info < (2, 7):
+    from ordereddict import OrderedDict
+else:
+    from collections import OrderedDict
+
+from Mip_Family_Analysis.Variants import genetic_variant, genotype
+from Mip_Family_Analysis.Utils import get_genes
 
 
 

@@ -16,6 +16,7 @@ Copyright (c) 2013 __MyCompanyName__. All rights reserved.
 
 import sys
 import os
+
 from Mip_Family_Analysis.Utils import is_number
 
 

@@ -65,9 +65,13 @@ Copyright (c) 2012 __MyCompanyName__. All rights reserved.
 
 import sys
 import os
-from mip_family_analysis.utils.is_number import is_number
-from mip_family_analysis.variants import genotype
-from collections import OrderedDict
+if sys.version_info < (2, 7):
+    from ordereddict import OrderedDict
+else:
+    from collections import OrderedDict
+
+from Mip_Family_Analysis.Utils.is_number import is_number
+from Mip_Family_Analysis.Variants import genotype
 
 class Variant(object):
     """This class holds the necessary information about a genetic variant."""

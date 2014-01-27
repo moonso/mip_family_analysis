@@ -27,8 +27,13 @@ Copyright (c) 2012 __MyCompanyName__. All rights reserved.
 
 import sys
 import os
+if sys.version_info < (2, 7):
+    from ordereddict import OrderedDict
+else:
+    from collections import OrderedDict
+
+
 from Mip_Family_Analysis.Utils.is_number import is_number
-from collections import OrderedDict
 
 class Family(object):
     """Base class for the family parsers."""
