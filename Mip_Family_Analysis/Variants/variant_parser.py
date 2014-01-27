@@ -17,7 +17,7 @@ import sys
 import os
 import argparse
 import shelve
-import tempfile
+from datetime import datetime
 from mip_family_analysis.variants import genetic_variant, genotype
 from mip_family_analysis.utils import get_genes
 from collections import OrderedDict
@@ -26,16 +26,19 @@ from collections import OrderedDict
 
 class VariantParser(object):
     """docstring for VariantParser"""
-    def __init__(self, variant_file, tasks_queue, individuals):
+    def __init__(self, variant_file, tasks_queue, individuals, header, verbosity = False):
         super(VariantParser, self).__init__()
         self.variant_file = variant_file
         self.tasks_queue = tasks_queue
         self.individuals = individuals
-        self.header_line = []
-        self.metadata = []
-            
-        variants = []
-    
+        self.header_line = header
+        self.verbosity = verbosity
+        
+        current_chrom = '1'
+        
+        start_parsing = datetime.now()
+        chrom_start = start_parsing
+                
         with open(variant_file, 'r') as f:
             
             beginning = True
@@ -44,14 +47,16 @@ class VariantParser(object):
             new_region = []
             for line in f:
                 line = line.rstrip()
-                if line[:2] == '##':
-                #This is the metadata information
-                    self.metadata.append(line)
-                elif line[:1] == '#':
-                    self.header_line = line[1:].split('\t')
-                else:
+                if line[0] != '#':
                     #These are variant lines                    
                     variant = self.cmms_variant(line)
+                    if self.verbosity:
+                        new_chrom = variant.chr
+                        if current_chrom != new_chrom:
+                            print 'Chromosome ', current_chrom, 'done!'
+                            print 'Time to parse chromosome ', current_chrom, datetime.now() - chrom_start
+                            current_chrom = new_chrom
+                            chrom_start = datetime.now()
                     new_genes = variant.genes
                     # If we look at the first variant, setup boundary conditions:
                     if beginning:
@@ -80,6 +85,11 @@ class VariantParser(object):
                         else:
                             current_genes = list(set(current_genes) | set(new_genes))
                             batch = self.add_variant(batch, variant) # Add variant batch
+        if self.verbosity:
+            print 'Chromosome ', current_chrom, 'done!'
+            print 'Time to parse chromosome ', current_chrom, datetime.now() - chrom_start
+            print 'Variants Parsed!'
+            print 'Time to parse variants: ', datetime.now()-start_parsing
         tasks_queue.put(batch)
         
     def add_variant(self, batch, variant):

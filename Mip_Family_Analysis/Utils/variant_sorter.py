@@ -22,13 +22,11 @@ class FileSort(object):
     def __init__(self, inFile, outFile=None, sort_mode = 'rank', splitSize=20):
         """ split size (in MB) """
         self._inFile = inFile
-        print self._inFile
         
         if outFile is None:
-            self.print_to_screen = True
+            self._outFile = inFile
         else:
             self._outFile = outFile
-            self.print_to_screen = False
                     
         self._splitSize = splitSize * 1000000
                 
@@ -57,20 +55,14 @@ class FileSort(object):
     def _sortFile(self, fileName, outFile=None):
         lines = open(fileName).readlines()
         get_key = self._getKey
-        for line in lines:
-            if not is_number(line.rstrip().split('\t')[-1]):
-                print line
-            elif line.rstrip().split('\t')[-1] == '12':
-                print line
-            
-            
         data = [(get_key(line), line) for line in lines if line!='']
         data.sort(reverse=True)
         lines = [line[1] for line in data]
         if outFile is not None:
-            open(outFile, 'w').write(''.join(lines))
+            open(outFile, 'a').write(''.join(lines))
         else:
-            print ''.join(lines)
+        # In this case the temporary files are over witten or if no output the original file is overwritten.
+            open(fileName, 'w').write(''.join(lines))
     
     
 
@@ -121,8 +113,7 @@ class FileSort(object):
         buff = []
         buffSize = self._splitSize/2
         append = buff.append
-        if not self.print_to_screen:
-            output = open(self._outFile,'w')
+        output = open(self._outFile,'a')
         try:
             key = max(keys)
             index = keys.index(key)
@@ -131,10 +122,7 @@ class FileSort(object):
                 while key == max(keys):
                     append(lines[index])
                     if len(buff) > buffSize:
-                        if self.print_to_screen:
-                            print ''.join(buff)
-                        else:
-                            output.write(''.join(buff))
+                        output.write(''.join(buff))
                         del buff[:]
                             
                     line = files[index].readline()
@@ -155,13 +143,10 @@ class FileSort(object):
                 index = keys.index(key)
 
             if len(buff)>0:
-                if self.print_to_screen:
-                    print ''.join(buff)
-                else:
-                    output.write(''.join(buff))
+                output.write(''.join(buff))
         finally:    
             output.close()
-
+    
     def _deleteFiles(self, files):   
         for fn in files:
             os.remove(fn)        

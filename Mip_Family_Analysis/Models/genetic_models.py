@@ -54,7 +54,6 @@ Copyright (c) 2013 __MyCompanyName__. All rights reserved.
 
 import os
 import sys
-from collections import Counter
 from datetime import datetime
 from genmod.variants import genotype
 from genmod.utils import pair_generator
@@ -73,7 +72,17 @@ def check_genetic_models(variant_batch, family, verbose = False):
                 compound_pairs = check_compound(compound_candidates, family)
             else:
                 compound_pairs = []
-        
+            
+            variant_pair = []
+            for pair in compound_pairs:
+                for variant in pair:
+                    variant_pair.append(variant)
+                # Add the compound pair id to each variant    
+                variants[variant_pair[0]].ar_comp_variants[variant_pair[1]] = 0
+                variants[variant_pair[1]].ar_comp_variants[variant_pair[0]] = 0
+                variants[variant_pair[0]].ar_comp = True
+                variants[variant_pair[1]].ar_comp = True
+            
         for variant_id, variant in variants.items():
                                 
             # Only check X-linked for the variants in the X-chromosome:
@@ -85,14 +94,6 @@ def check_genetic_models(variant_batch, family, verbose = False):
                 check_dominant(variant, family)
             # Check the recessive model:
                 check_recessive(variant, family)
-            for pair in compound_pairs:
-                variant_1 = variants[pair[0]]
-                variant_2 = variants[pair[1]]
-                # Add the compound pair id to each variant
-                variant_1.ar_comp_variants[variant_2.variant_id] = 0
-                variant_2.ar_comp_variants[variant_1.variant_id] = 0
-                variant_1.ar_comp = True
-                variant_2.ar_comp = True
             variant.check_models()
     return
 
@@ -105,7 +106,9 @@ def check_compound_candidates(variants, family):
         for variant_id in variants:
             variant = variants[variant_id]
             genotype = variant.get_genotype(individual.individual_id)
+            # If an individual is affected:
             if individual.affected():
+                # It has to be heterozygote for the variant to be a candidate
                 if not genotype.heterozygote:
                     if variant_id in comp_candidates:
                         del comp_candidates[variant_id]
@@ -117,8 +120,8 @@ def check_compound_candidates(variants, family):
                         del comp_candidates[variant_id]
                 elif genotype.heterozygote:
                     individual_variants[variant_id] = variant
+        #If the individual is sick then all potential compound candidates of a gene must exist in that individual.
         if individual.affected():
-            #If the individual is sick then all potential compound candidates of a gene must exist in that individual.
             if len(individual_variants) > 1:
                 for variant_id in comp_candidates:
                     if variant_id not in individual_variants:
@@ -126,12 +129,12 @@ def check_compound_candidates(variants, family):
             else:
                 # If a sick individual dont have any compounds pairs there are no compound candidates.
                 comp_candidates = {}
-        else:
-            #If an individual is healthy and have compound pairs they can not be deleterious:
-            if len(individual_variants) > 1:
-                for variant_id in individual_variants:
-                    if variant_id in comp_candidates:
-                        del comp_candidates[variant_id]
+        # else:
+        #     #If an individual is healthy and have compound pairs they can not be deleterious:
+        #     if len(individual_variants) > 1:
+        #         for variant_id in individual_variants:
+        #             if variant_id in comp_candidates:
+        #                 del comp_candidates[variant_id]
     return comp_candidates
 
 def check_compound(list_of_variants, family):
@@ -141,23 +144,22 @@ def check_compound(list_of_variants, family):
     The cheapest way to store them are in a hash table. After this we need to go
      through all pairs, if both variants of a pair is found in a healthy individual
       the pair is not a deleterious compound heterozygote."""
-    true_variants = []
-    false_variants = []
+    true_variant_pairs = []
+    false_variant_pairs = []
             
     def add_variant_pair(variant_pair, variant_list):
         """Add the pairs that where found to be not true."""
-        in_list = False
-        for pair in variant_list:
-            if Counter(variant_pair) == Counter(pair):
-                in_list = True
-        if not in_list:
+        if variant_pair not in variant_list:
             variant_list.append(variant_pair)
         
-    # Returns a generator with all possible (unordered) pairs for this individual:
+    # Returns a generator with all possible pairs for this individual, the pairs are python sets:
     my_pairs = pair_generator.Pair_Generator(list_of_variants)
     for pair in my_pairs.generate_pairs():
-        variant_1 = pair[0]
-        variant_2 = pair[1]
+        variant_pair = []
+        for variant in pair:
+            variant_pair.append(variant)
+        variant_1 = variant_pair[0]
+        variant_2 = variant_pair[1]
     # Check in all individuals what genotypes that are in the trio based of the individual picked.
         for individual in family.individuals:
             genotype_1 = variant_1.get_genotype(individual.individual_id)
@@ -175,17 +177,13 @@ def check_compound(list_of_variants, family):
                 # If a parent has both variants and is unaffected it can not be a compound.
                 # This will change when we get the phasing information.
                 if ((mother_genotype_1.heterozygote and mother_genotype_2.heterozygote and mother_phenotype == 1) or (father_genotype_1.heterozygote and father_genotype_2.heterozygote and father_phenotype == 1)):
-                    add_variant_pair([variant_1.variant_id, variant_2.variant_id], false_variants)
+                    add_variant_pair({variant_1.variant_id, variant_2.variant_id}, false_variant_pairs)
                 else:
-                    add_variant_pair([variant_1.variant_id, variant_2.variant_id], true_variants)
+                    add_variant_pair({variant_1.variant_id, variant_2.variant_id}, true_variant_pairs)
     compound_pairs = []
-    pair_to_add = True
-    for variant_pair in true_variants:
-        for false_pair in false_variants:
-            # If the variant pair is among the false ones do not add it
-            if Counter(variant_pair) == Counter(false_pair):
-                pair_to_add = False
-        if pair_to_add:
+    for variant_pair in true_variant_pairs:
+        # If the variant pair is among the false ones do not add it
+        if variant_pair not in false_variant_pairs:
             compound_pairs.append(variant_pair)
     return compound_pairs
                  

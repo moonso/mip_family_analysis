@@ -38,7 +38,8 @@ def score_variant(variant_object, genetic_models = ['AR_hom', 'AD']):
     # Frequency in databases:
     thousand_genomes_frequency = variant_object.all_info.get('1000G', None)
     dbsnp_frequency = variant_object.all_info.get('Dbsnp129', None)
-    dbsnp_id = variant_object.all_info.get('Dbsnp_nonflagged' ,None)
+    dbsnp_id = variant_object.all_info.get('Dbsnp_nonflagged', None)
+    hbvdb = variant_object.all_info.get('HBVDB', None)
     
     # Filter
     
@@ -62,7 +63,7 @@ def score_variant(variant_object, genetic_models = ['AR_hom', 'AD']):
     score += check_predictions(mutation_taster, avsift, poly_phen)
     score += check_functional_annotation(functional_annotation)
     score += check_gene_annotation(gene_annotation)
-    score += check_frequency_score(thousand_genomes_frequency, dbsnp_frequency, dbsnp_id)
+    score += check_frequency_score(thousand_genomes_frequency, dbsnp_frequency, hbvdb, dbsnp_id)
     score += check_filter(filt)
     score += check_region_conservation(mce64way, gerp_region)
     score += check_base_conservation(gerp_base)
@@ -70,7 +71,7 @@ def score_variant(variant_object, genetic_models = ['AR_hom', 'AD']):
     score += check_segmental_duplication(segdup)
     score += check_hgmd(hgmd)
     variant_object.rank_score = score
-    return
+    
     # return variant_object
     
 def check_inheritance(variant_models, genetic_models):
@@ -120,7 +121,7 @@ def check_gene_annotation(gene_annotation = None):
         gene_annotation_score += 1
     return gene_annotation_score
     
-def check_frequency_score(thousand_genomes_frequency = None, dbsnp_frequency = None, dbsnp_id = None):
+def check_frequency_score(thousand_genomes_frequency = None, dbsnp_frequency = None, hbvdb_frequency = None, dbsnp_id = None):
     """Score the variant based on the frequency in population."""
 
     frequency_score = 0
@@ -140,6 +141,7 @@ def check_frequency_score(thousand_genomes_frequency = None, dbsnp_frequency = N
     
     freq_scores.append(get_freq_score(thousand_genomes_frequency))
     freq_scores.append(get_freq_score(dbsnp_frequency))
+    freq_scores.append(get_freq_score(hbvdb_frequency))
     common = False
     # If the variant if common in any database(if a score is negative) we give a low score:
     for freq_score in freq_scores:
