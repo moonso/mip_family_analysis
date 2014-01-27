@@ -17,97 +17,121 @@ import sys
 import os
 import argparse
 import shelve
-import tempfile
-from Mip_Family_Analysis.Variants import genetic_variant, genotype
+from datetime import datetime
+from mip_family_analysis.variants import genetic_variant, genotype
+from mip_family_analysis.utils import get_genes
 from collections import OrderedDict
 
+
+
 class VariantParser(object):
-    """Parses a file with family info and creates a family object with individuals."""
-    def __init__(self, infile, file_type):
-       super(VariantParser, self).__init__()
-       self.variant_type = file_type
-       self.chrom_shelves = OrderedDict() # ordered dict with {<chr>: <path_to_shelve_with_variants>}
-       self.header_lines = []
-       self.individuals = []
-       self.metadata = []
-       #Dictionary with <Gene ID> : [variant_id_1, variant_id_2, ...] for controlling the compound heterozygotes
-       self.gene_variants = {}
-       chrom_change = False
-       beginning = True
-       directory_name = tempfile.mkdtemp()
-       
-       with open(infile, 'r') as f:
-           line_count = 0
-           for line in f:
-               line = line.rstrip()
-               line_count += 1
-               if chrom_change:
-                   # Close the shelve since we are at a new chromosome:
-                   current_shelve.close()
-                   # Make a new shelve:
-                   shelve_name = os.path.join(directory_name, 'chrom_' + new_chrom + '.shelve')
-                   current_shelve = shelve.open(shelve_name)
-                   # Add the filename to our dictionary:
-                   self.chrom_shelves[new_chrom] = shelve_name
-                   # Add the first variant from the new chromosome:
-                   current_shelve[my_variant.variant_id] = my_variant
-                   # Restart:
-                   chrom_change = False
-                   current_chrom = new_chrom
-                   
-               if line[0] != '#' and len(line) > 1:
-                   my_variant = self.cmms_variant(line)
-                   
-                   if beginning:
-                       # Init
-                       current_chrom = my_variant.chr
-                       new_chrom = my_variant.chr
-                       shelve_name = os.path.join(directory_name, 'chrom_' + new_chrom + '.shelve')
-                       current_shelve = shelve.open(shelve_name)
-                       self.chrom_shelves[new_chrom] = shelve_name
-                       current_shelve[my_variant.variant_id] = my_variant
-                       beginning = False
-                   else:    
-                       new_chrom = my_variant.chr
-                       if new_chrom == current_chrom:
-                           current_shelve[my_variant.variant_id] = my_variant
-                       else:
-                           chrom_change = True
-               elif line[:2] != '##':
-                   # If necesary we can write something to parse the headers.
-                   self.header_lines = line[1:].split()
-               elif line[:2] == '##':
-                   self.metadata.append(line)
-       current_shelve[my_variant.variant_id] = my_variant
-       current_shelve.close()
+    """docstring for VariantParser"""
+    def __init__(self, variant_file, tasks_queue, individuals, header, verbosity = False):
+        super(VariantParser, self).__init__()
+        self.variant_file = variant_file
+        self.tasks_queue = tasks_queue
+        self.individuals = individuals
+        self.header_line = header
+        self.verbosity = verbosity
+        
+        current_chrom = '1'
+        
+        start_parsing = datetime.now()
+        chrom_start = start_parsing
+                
+        with open(variant_file, 'r') as f:
+            
+            beginning = True
+            batch = {} # This is a dictionary to store the variant lines of a batch
+            current_genes = []  # These are lists to keep track of the regions that we look at
+            new_region = []
+            for line in f:
+                line = line.rstrip()
+                if line[0] != '#':
+                    #These are variant lines                    
+                    variant = self.cmms_variant(line)
+                    if self.verbosity:
+                        new_chrom = variant.chr
+                        if current_chrom != new_chrom:
+                            print 'Chromosome ', current_chrom, 'done!'
+                            print 'Time to parse chromosome ', current_chrom, datetime.now() - chrom_start
+                            current_chrom = new_chrom
+                            chrom_start = datetime.now()
+                    new_genes = variant.genes
+                    # If we look at the first variant, setup boundary conditions:
+                    if beginning:
+                        current_genes = new_genes
+                        beginning = False
+                        batch = self.add_variant(batch, variant) # Add variant batch
+
+                    else:
+                        send = True
+                    
+                    #Check if we are in a space between genes:
+                        if len(new_genes) == 0:
+                            if len(current_genes) == 0:
+                                send = False
+                    #If not check if we are in a consecutive region
+                        else:
+                            for gene in new_genes:
+                                if gene in current_genes:
+                                    send = False
+                        if send:
+                            # If there is an intergenetic region we do not look at the compounds.
+                            # The tasks are tuples like (variant_list, bool(if compounds))
+                            self.tasks_queue.put(batch)
+                            current_genes = new_genes
+                            batch = self.add_variant({}, variant)
+                        else:
+                            current_genes = list(set(current_genes) | set(new_genes))
+                            batch = self.add_variant(batch, variant) # Add variant batch
+        if self.verbosity:
+            print 'Chromosome ', current_chrom, 'done!'
+            print 'Time to parse chromosome ', current_chrom, datetime.now() - chrom_start
+            print 'Variants Parsed!'
+            print 'Time to parse variants: ', datetime.now()-start_parsing
+        tasks_queue.put(batch)
+        
+    def add_variant(self, batch, variant):
+        """Adds the variant to the proper gene(s) in the batch."""
+        for gene in variant.genes:
+            if gene in batch:
+                batch[gene][variant.variant_id] = variant
+            else:
+                batch[gene] = {variant.variant_id:variant}
+        return batch
     
     def cmms_variant(self, variant_line):
-        """Returns a Variant objekt from the cmms variant format. Creates a list with Genotype objects that becomes a member of the variant."""        
-        variant_line.rstrip()
+        """Returns a variant object in the cmms format."""
+        
         variant_info = OrderedDict()
         individual_genotypes = {} #DICT with {ind_id:{<genotype>}}
         counter = 0
         variant_line = variant_line.split('\t')
+        ensemble_entry = variant_line[5]
+        hgnc_entry = variant_line[6]
         
+        # These must be parsed separately
+        hgnc_genes = get_genes.get_genes(hgnc_entry, 'HGNC')
+        ensemble_genes = get_genes.get_genes(ensemble_entry, 'Ensemble')
+    
         for entry in range(len(variant_line)):
             
-            if 'IDN' in self.header_lines[entry]:
+            if 'IDN' in self.header_line[entry]:
                 # Looks like IDN:11-1-2A
-                individual = self.header_lines[entry].split(':')[-1]
+                individual = self.header_line[entry].split(':')[-1]
                 if individual not in self.individuals:
                     self.individuals.append(individual)
-            variant_info[self.header_lines[entry]] = variant_line[entry]
+            variant_info[self.header_line[entry]] = variant_line[entry]
                 
-        counter += 1
         chrom = variant_info['Chromosome']
         start = variant_info['Variant_start']
         stop = variant_info['Variant_stop']
         alternative = variant_info['Alternative_allele']
         reference = variant_info['Reference_allele']
         identity = variant_info['Dbsnp_rs_nr']
-        my_variant = genetic_variant.Variant(chrom, start, stop, reference, alternative, identity, variant_info)
-        
-        
+        my_variant = genetic_variant.Variant(chrom, start, stop, reference, alternative, identity, genes=hgnc_genes, all_info=variant_info)
+    
         # Add the genotypes to variant:
         
         for individual in self.individuals:
@@ -119,8 +143,8 @@ class VariantParser(object):
                 genotype_arguments[value_pair[0]] = value_pair[-1]
             my_genotype = genotype.Genotype(GT=genotype_arguments.get('GT','./.'), AD=genotype_arguments.get('AD','.,.'), DP=genotype_arguments.get('DP','0'), GQ=genotype_arguments.get('GQ','0'))
             my_variant.genotypes[individual] = my_genotype
+   
         return my_variant
-        
 
 
 def main():
