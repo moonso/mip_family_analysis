@@ -27,7 +27,7 @@ Copyright (c) 2012 __MyCompanyName__. All rights reserved.
 
 import sys
 import os
-from mip_family_analysis.utils.is_number import is_number
+from Mip_Family_Analysis.Utils.is_number import is_number
 from collections import OrderedDict
 
 class Family(object):

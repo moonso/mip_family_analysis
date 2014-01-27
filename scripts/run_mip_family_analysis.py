@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-mip_family_analysis.py
+Mip_Family_Analysis.py
 
 Script for annotating which genetic models that are followed for variants in the mip pipeline.
 
@@ -18,10 +18,10 @@ from multiprocessing import JoinableQueue, Queue, Lock, cpu_count
 from datetime import datetime
 from pprint import pprint as pp
 
-from mip_family_analysis.family import family_parser
-from mip_family_analysis.variants import variant_parser
-from mip_family_analysis.models import genetic_models, score_variants
-from mip_family_analysis.utils import variant_consumer, variant_sorter, header_parser
+from Mip_Family_Analysis.Family import family_parser
+from Mip_Family_Analysis.Variants import variant_parser
+from Mip_Family_Analysis.Models import genetic_models, score_variants
+from Mip_Family_Analysis.Utils import variant_consumer, variant_sorter, header_parser
 
 def get_family(args):
     """Return the family"""

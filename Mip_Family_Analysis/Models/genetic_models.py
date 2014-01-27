@@ -55,9 +55,8 @@ Copyright (c) 2013 __MyCompanyName__. All rights reserved.
 import os
 import sys
 from datetime import datetime
-from genmod.variants import genotype
-from genmod.utils import pair_generator
-from time import sleep
+from Mip_Family_Analysis.Variants import genotype
+from Mip_Family_Analysis.Utils import pair_generator
 
 def check_genetic_models(variant_batch, family, verbose = False):
     #A variant batch is a dictionary on the form {gene_id: {variant_id:variant_obj}}

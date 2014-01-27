@@ -15,7 +15,7 @@ import sys
 import os
 import multiprocessing
 
-from mip_family_analysis.models import genetic_models, score_variants
+from Mip_Family_Analysis.Models import genetic_models, score_variants
 
 class VariantConsumer(multiprocessing.Process):
     """Yeilds all unordered pairs from a list of objects as tuples, like (obj_1, obj_2)"""
