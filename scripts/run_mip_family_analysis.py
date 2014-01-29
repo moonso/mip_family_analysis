@@ -13,9 +13,9 @@ import sys
 import os
 import argparse
 import shelve
-import operator
 from multiprocessing import JoinableQueue, Queue, Lock, cpu_count
 from datetime import datetime
+import pkg_resources
 from pprint import pprint as pp
 
 from Mip_Family_Analysis.Family import family_parser
@@ -46,6 +46,8 @@ def main():
     parser.add_argument('variant_file', type=str, nargs=1, help='A variant file.Default is vcf format')
     
     parser.add_argument('-o', '--outfile', type=str, nargs=1, help='Specify the path to output, if no file specified the output will be printed to screen.')
+    
+    parser.add_argument('--version', action="version", version=pkg_resources.require("Mip_Family_Analysis")[0].version)
     
     parser.add_argument('-v', '--verbose', action="store_true", help='Increase output verbosity.')
     
