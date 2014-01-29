@@ -104,7 +104,7 @@ def main():
     for w in consumers:
         w.start()
 
-    var_printer = variant_printer.VariantPrinter(results, temp_file, args.verbose)
+    var_printer = variant_printer.VariantPrinter(results, temp_file, num_consumers, args.verbose)
     var_printer.start()
 
     var_parser = variant_parser.VariantParser(var_file, tasks, head.individuals, head.header, args.verbose)

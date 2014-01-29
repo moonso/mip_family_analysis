@@ -24,6 +24,7 @@ class VariantPrinter(multiprocessing.Process):
         self.results = results
         self.outfile = outfile
         self.verbosity = verbosity
+        print self.verbosity
         self.number_of_consumers = number_of_consumers
     
     def run(self):
