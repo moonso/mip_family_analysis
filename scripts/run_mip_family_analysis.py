@@ -13,15 +13,15 @@ import sys
 import os
 import argparse
 import shelve
-import operator
 from multiprocessing import JoinableQueue, Queue, Lock, cpu_count
 from datetime import datetime
+import pkg_resources
 from pprint import pprint as pp
 
 from Mip_Family_Analysis.Family import family_parser
 from Mip_Family_Analysis.Variants import variant_parser
 from Mip_Family_Analysis.Models import genetic_models, score_variants
-from Mip_Family_Analysis.Utils import variant_consumer, variant_sorter, header_parser
+from Mip_Family_Analysis.Utils import variant_consumer, variant_sorter, header_parser, variant_printer
 
 def get_family(args):
     """Return the family"""
@@ -46,6 +46,8 @@ def main():
     parser.add_argument('variant_file', type=str, nargs=1, help='A variant file.Default is vcf format')
     
     parser.add_argument('-o', '--outfile', type=str, nargs=1, help='Specify the path to output, if no file specified the output will be printed to screen.')
+    
+    parser.add_argument('--version', action="version", version=pkg_resources.require("Mip_Family_Analysis")[0].version)
     
     parser.add_argument('-v', '--verbose', action="store_true", help='Increase output verbosity.')
     
@@ -92,38 +94,27 @@ def main():
     
     # Create a temporary file for the variants:
     temp_file = 'temp.tmp'
-    with open(temp_file, 'w') as file_handle:
     
-        num_consumers = cpu_count() * 2
-        number_of_finished = 0
+    num_consumers = (cpu_count() * 2 -1)
+    number_of_finished = 0
+    
+    consumers = [variant_consumer.VariantConsumer(lock, tasks, results, my_family, 
+                    args.verbose) for i in xrange(num_consumers)]
+    
+    for w in consumers:
+        w.start()
+
+    var_printer = variant_printer.VariantPrinter(results, temp_file, args.verbose)
+    var_printer.start()
+
+    var_parser = variant_parser.VariantParser(var_file, tasks, head.individuals, head.header, args.verbose)
+    var_parser.parse()
+    
         
-        consumers = [variant_consumer.VariantConsumer(lock, tasks, results, my_family, 
-                        args.verbose) for i in xrange(num_consumers)]
-    
-        for w in consumers:
-            w.start()
-    
-        var_parser = variant_parser.VariantParser(var_file, tasks, head.individuals, head.header, args.verbose)
-    
-    
-        for i in xrange(num_consumers):
-            tasks.put(None)
-    
-    
-        # Print the results to a temporary file:
-        while True:
-            next_result = results.get()
-            if type(next_result) == type('a'):
-                if next_result == 'Done':
-                    number_of_finished += 1
-                if number_of_finished == num_consumers:
-                    break
-            else:
-                for variant_id in next_result:
-                    file_handle.write('\t'.join(next_result[variant_id].get_cmms_variant())+'\n')
-            
-        tasks.join()
-        file_handle.close()
+    for i in xrange(num_consumers):
+        tasks.put(None)
+        
+    tasks.join()
 
     if args.verbose:
         print 'Variants done!. Time to check models: ', (datetime.now() - start_time_variant_parsing)
