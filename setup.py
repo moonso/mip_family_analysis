@@ -5,11 +5,11 @@ try:
 except ImportError:
     from distutils.core import setup
 
-with open('README.md') as file:
+with open('README.txt') as file:
     long_description = file.read()
 
 setup(name="mip_family_analysis",
-	version="0.5.2",
+	version="0.5.3",
 	author="Mans Magnusson",
 	author_email="mans.magnusson@scilifelab.se",
 	description=("A new tool for doing inheritance analysis and scoring in the mip pipeline."),

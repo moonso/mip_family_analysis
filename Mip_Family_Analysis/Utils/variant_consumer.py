@@ -55,8 +55,8 @@ class VariantConsumer(multiprocessing.Process):
                 if len(fixed_variants[variant_id].ar_comp_variants) > 0:
                     for compound_id in fixed_variants[variant_id].ar_comp_variants:
                         compound_score = fixed_variants[variant_id].rank_score + fixed_variants[compound_id].rank_score
-                        fixed_variants[variant_id].ar_comp_variants[compound_id] = compound_score            
-
+                        fixed_variants[variant_id].ar_comp_variants[compound_id] = compound_score
+            
             self.results.put(fixed_variants)
             self.batch_queue.task_done()
         return
