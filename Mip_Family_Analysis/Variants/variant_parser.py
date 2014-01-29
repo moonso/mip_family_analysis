@@ -38,12 +38,16 @@ class VariantParser(object):
         self.header_line = header
         self.verbosity = verbosity
         
+        
+    def parse(self):
+        """Start the parsing"""
+        
         current_chrom = '1'
         
         start_parsing = datetime.now()
+        
         chrom_start = start_parsing
-                
-        with open(variant_file, 'r') as f:
+        with open(self.variant_file, 'rb') as f:
             
             beginning = True
             batch = {} # This is a dictionary to store the variant lines of a batch
@@ -94,7 +98,7 @@ class VariantParser(object):
             print 'Time to parse chromosome ', current_chrom, datetime.now() - chrom_start
             print 'Variants Parsed!'
             print 'Time to parse variants: ', datetime.now()-start_parsing
-        tasks_queue.put(batch)
+        self.tasks_queue.put(batch)
         
     def add_variant(self, batch, variant):
         """Adds the variant to the proper gene(s) in the batch."""
