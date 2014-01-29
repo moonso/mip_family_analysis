@@ -30,8 +30,9 @@ class VariantPrinter(multiprocessing.Process):
         """Starts the printing"""
         # Print the results to a temporary file:
         number_of_finished = 0
+        proc_name = self.name
         if self.verbosity:
-            print 'Printer starting!'
+            print proc_name ,'starting!'
         with open(self.outfile, 'w') as file_handle:
             while True:
                 next_result = self.results.get()
@@ -39,6 +40,8 @@ class VariantPrinter(multiprocessing.Process):
                     if next_result == 'Done':
                         number_of_finished += 1
                     if number_of_finished == self.number_of_consumers:
+                        if self.verbosity:
+                            print 'All variants printed!'
                         break
                 else:
                     for variant_id in next_result:

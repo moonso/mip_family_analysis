@@ -115,6 +115,7 @@ def main():
         tasks.put(None)
         
     tasks.join()
+    var_printer.join()
 
     if args.verbose:
         print 'Variants done!. Time to check models: ', (datetime.now() - start_time_variant_parsing)
