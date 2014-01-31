@@ -19,7 +19,7 @@ import pkg_resources
 from pprint import pprint as pp
 
 from Mip_Family_Analysis.Family import family_parser
-from Mip_Family_Analysis.Variants import variant_parser
+from Mip_Family_Analysis.Variants import variant_parser, variant_builder
 from Mip_Family_Analysis.Models import genetic_models, score_variants
 from Mip_Family_Analysis.Utils import variant_consumer, variant_sorter, header_parser, variant_printer
 
@@ -84,68 +84,67 @@ def main():
     # Take care of the headers from the variant file:
     head = get_header(var_file)
         
+
+    # The variant queue is just a queue with splitted variant lines:
+    variant_queue = Queue()
     # The task queue is where all jobs(in this case batches that represents variants in a region) is put
-    # the consumers will then pick their jobs from this queue.
-    tasks = JoinableQueue()
+    # the consumers will then pick their jobs from this queue:
+    # tasks = Queue()
     # The consumers will put their results in the results queue
     results = Queue()
-    # We will need a lock so that the consumers can print their results to screen
-    lock = Lock()
     
     # Create a temporary file for the variants:
+    
     temp_file = 'temp.tmp'
     
-    num_consumers = (cpu_count() * 2 -1)
-    number_of_finished = 0
+    num_model_checkers = (cpu_count()*2-1)
     
-    consumers = [variant_consumer.VariantConsumer(lock, tasks, results, my_family, 
-                    args.verbose) for i in xrange(num_consumers)]
+        
+    model_checkers = [variant_consumer.VariantConsumer(variant_queue, results, my_family, 
+                     args.verbose) for i in xrange(num_model_checkers)]
     
-    for w in consumers:
+    for w in model_checkers:
         w.start()
+    
+    # var_printer = variant_printer.VariantPrinter(results, temp_file, num_model_checkers, args.verbose)
+    # var_printer.start()
 
-    var_printer = variant_printer.VariantPrinter(results, temp_file, num_consumers, args.verbose)
-    var_printer.start()
-
-    var_parser = variant_parser.VariantParser(var_file, tasks, head.individuals, head.header, args.verbose)
+    var_parser = variant_parser.VariantFileParser(var_file, variant_queue, head, args.verbose)
     var_parser.parse()
     
-        
-    for i in xrange(num_consumers):
-        tasks.put(None)
-        
-    tasks.join()
-    var_printer.join()
+            
+    for i in xrange(num_model_checkers):
+        variant_queue.put(None)
+    
+    # variant_queue.join()
+    # tasks.join()
+    # var_printer.join()
 
     if args.verbose:
-        print 'Variants done!. Time to check models: ', (datetime.now() - start_time_variant_parsing)
+        print 'Variants done!. Time to parse variants: ', (datetime.now() - start_time_variant_parsing)
         print ''
         print 'Start sorting the variants:'
-        start_time_variant_sorting = datetime.now()
-
-    if args.outfile:
-        results = args.outfile[0]
-    else:
-        results = 'results.tmp'
-    
-    with open(results, 'w') as f:
-        for line_number in head.metadata:
-            f.write(head.metadata[line_number] + '\n')
-        f.write('#' + '\t'.join(head.header) + '\n')
-    
-    var_sorter = variant_sorter.FileSort(temp_file, results)
-    var_sorter.sort()
-    os.remove(temp_file)
-    
-    if args.verbose:
-        print 'Variants sorted!. Time to sort variants: ', (datetime.now() - start_time_variant_sorting)
-        print ''
-    
-    if not args.outfile:
-        with open(results, 'r') as f:
-            for line in f:
-                print line.rstrip()
-        os.remove(results)
+    #     start_time_variant_sorting = datetime.now()
+    # 
+    # 
+    # if args.outfile:
+    #     results_file = args.outfile[0]
+    # else:
+    #     results_file = 'results.tmp' 
+    # var_sorter = variant_sorter.FileSort(temp_file, results_file)
+    # var_sorter.sort()
+    # 
+    # os.remove(temp_file)
+    # 
+    # if args.verbose:
+    #     print 'Variants sorted!. Time to sort variants: ', (datetime.now() - start_time_variant_sorting)
+    #     print ''
+    # 
+    # if not args.outfile:
+    #     with open(results_file, 'r') as f:
+    #         for line in f:
+    #             print line.rstrip()
+    #     os.remove(results_file)
     
 
 

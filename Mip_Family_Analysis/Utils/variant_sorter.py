@@ -55,6 +55,9 @@ class FileSort(object):
     def _sortFile(self, fileName, outFile=None):
         lines = open(fileName).readlines()
         get_key = self._getKey
+        for line in lines:
+            if not is_number(line.rstrip().split('\t')[-1]):
+                print line
         data = [(get_key(line), line) for line in lines if line!='']
         data.sort(reverse=True)
         lines = [line[1] for line in data]
