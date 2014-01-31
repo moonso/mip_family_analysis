@@ -19,61 +19,70 @@ import os
 
 from Mip_Family_Analysis.Utils import is_number
 
+def get_genetic_models(model_dict):
+    """return a list with the genetic models followed"""
+    models_followed = []
+    for model in model_dict:
+        if model_dict[model]:
+            models_followed.append(model)
+    return models_followed
 
-def score_variant(variant_object, genetic_models = ['AR_hom', 'AD']):
+def score_variant(variants, genetic_models = ['AR_hom', 'AD']):
     """Score a variant object according to Henriks score model. Input: A variant object and a list of genetic models."""
     
-    score = 0
-    # Models of inheritance
-    variant_models = variant_object.models
+    for variant_id in variants:
+        variant = variants[variant_id]
+        score = 0
+        # Models of inheritance
+        variant_models = variant.get('Inheritance_model', {})
     
-    # Predictors
-    mutation_taster = variant_object.all_info.get('Mutation_taster', None)
-    avsift = variant_object.all_info.get('SIFT', None)
-    poly_phen = variant_object.all_info.get('Poly_phen', None)
-    
-    # Annotations:
-    functional_annotation = variant_object.all_info.get('Functional_annotation', None)
-    gene_annotation = variant_object.all_info.get('Gene_annotation', None)
-    
-    # Frequency in databases:
-    thousand_genomes_frequency = variant_object.all_info.get('1000G', None)
-    dbsnp_frequency = variant_object.all_info.get('Dbsnp129', None)
-    dbsnp_id = variant_object.all_info.get('Dbsnp_nonflagged', None)
-    hbvdb = variant_object.all_info.get('HBVDB', None)
-    
-    # Filter
-    
-    filt = variant_object.all_info.get('GT_call_filter', None)
-    
-    # Conservation scores:
-        # Base
-    gerp_base = variant_object.all_info.get('GERP', None)
-        # Region
-    mce64way = variant_object.all_info.get('Phast_cons_lements', None)
-    gerp_region = variant_object.all_info.get('GERP_elements', None)
-    
-    
-    phylop = variant_object.all_info.get('Phylo_p', None)
-    
-    segdup = variant_object.all_info.get('Genomic_super_dups', None)
-    
-    hgmd = variant_object.all_info.get('HGMD', None)
-    
-    score += check_inheritance(variant_models, genetic_models)
-    score += check_predictions(mutation_taster, avsift, poly_phen)
-    score += check_functional_annotation(functional_annotation)
-    score += check_gene_annotation(gene_annotation)
-    score += check_frequency_score(thousand_genomes_frequency, dbsnp_frequency, hbvdb, dbsnp_id)
-    score += check_filter(filt)
-    score += check_region_conservation(mce64way, gerp_region)
-    score += check_base_conservation(gerp_base)
-    score += check_phylop_score(phylop)
-    score += check_segmental_duplication(segdup)
-    score += check_hgmd(hgmd)
-    variant_object.rank_score = score
-    
-    # return variant_object
+        # Predictors
+        mutation_taster = variant.get('Mutation_taster', None)
+        avsift = variant.get('SIFT', None)
+        poly_phen = variant.get('Poly_phen', None)
+        
+        # Annotations:
+        functional_annotation = variant.get('Functional_annotation', None)
+        gene_annotation = variant.get('Gene_annotation', None)
+        
+        # Frequency in databases:
+        thousand_genomes_frequency = variant.get('1000G', None)
+        dbsnp_frequency = variant.get('Dbsnp129', None)
+        dbsnp_id = variant.get('Dbsnp_nonflagged', None)
+        hbvdb = variant.get('HBVDB', None)
+        
+        # Filter
+        
+        filt = variant.get('GT_call_filter', None)
+        
+        # Conservation scores:
+            # Base
+        gerp_base = variant.get('GERP', None)
+            # Region
+        mce64way = variant.get('Phast_cons_lements', None)
+        gerp_region = variant.get('GERP_elements', None)
+            
+            
+        phylop = variant.get('Phylo_p', None)
+        
+        segdup = variant.get('Genomic_super_dups', None)
+        
+        hgmd = variant.get('HGMD', None)
+        
+        score += check_inheritance(variant_models, genetic_models)
+        score += check_predictions(mutation_taster, avsift, poly_phen)
+        score += check_functional_annotation(functional_annotation)
+        score += check_gene_annotation(gene_annotation)
+        score += check_frequency_score(thousand_genomes_frequency, dbsnp_frequency, hbvdb, dbsnp_id)
+        score += check_filter(filt)
+        score += check_region_conservation(mce64way, gerp_region)
+        score += check_base_conservation(gerp_base)
+        score += check_phylop_score(phylop)
+        score += check_segmental_duplication(segdup)
+        score += check_hgmd(hgmd)
+        variant['Rank_score'] = score
+        
+    return variants
     
 def check_inheritance(variant_models, genetic_models):
     """Check if the models of inheritance are followed for the variant."""

@@ -86,13 +86,14 @@ def main():
         
 
     # The variant queue is just a queue with splitted variant lines:
-    variant_queue = Queue()
+    variant_queue = JoinableQueue()
     # The task queue is where all jobs(in this case batches that represents variants in a region) is put
     # the consumers will then pick their jobs from this queue:
     # tasks = Queue()
     # The consumers will put their results in the results queue
-    results = Queue()
+    results = JoinableQueue()
     
+    lock = Lock()
     # Create a temporary file for the variants:
     
     temp_file = 'temp.tmp'
@@ -100,14 +101,14 @@ def main():
     num_model_checkers = (cpu_count()*2-1)
     
         
-    model_checkers = [variant_consumer.VariantConsumer(variant_queue, results, my_family, 
+    model_checkers = [variant_consumer.VariantConsumer(variant_queue, results, lock, my_family, 
                      args.verbose) for i in xrange(num_model_checkers)]
     
     for w in model_checkers:
         w.start()
     
-    # var_printer = variant_printer.VariantPrinter(results, temp_file, num_model_checkers, args.verbose)
-    # var_printer.start()
+    var_printer = variant_printer.VariantPrinter(results, temp_file, args.verbose)
+    var_printer.start()
 
     var_parser = variant_parser.VariantFileParser(var_file, variant_queue, head, args.verbose)
     var_parser.parse()
@@ -116,7 +117,9 @@ def main():
     for i in xrange(num_model_checkers):
         variant_queue.put(None)
     
-    # variant_queue.join()
+    variant_queue.join()
+    results.put(None)
+    results.join()
     # tasks.join()
     # var_printer.join()
 
