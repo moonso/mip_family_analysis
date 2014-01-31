@@ -35,8 +35,8 @@ def get_family(args):
 def get_header(variant_file):
     """Return a fixed header parser"""
     head = header_parser.HeaderParser(variant_file)
-    head.header.append('Compounds')
-    head.header.append('Rank_score')
+    # head.header.append('Compounds')
+    # head.header.append('Rank_score')
     return head
     
 
@@ -101,13 +101,13 @@ def main():
     num_model_checkers = (cpu_count()*2-1)
     
         
-    model_checkers = [variant_consumer.VariantConsumer(variant_queue, results, lock, my_family, 
+    model_checkers = [variant_consumer.VariantConsumer(variant_queue, results, my_family, 
                      args.verbose) for i in xrange(num_model_checkers)]
     
     for w in model_checkers:
         w.start()
     
-    var_printer = variant_printer.VariantPrinter(results, temp_file, args.verbose)
+    var_printer = variant_printer.VariantPrinter(results, lock, temp_file, args.verbose)
     var_printer.start()
 
     var_parser = variant_parser.VariantFileParser(var_file, variant_queue, head, args.verbose)
@@ -118,6 +118,7 @@ def main():
         variant_queue.put(None)
     
     variant_queue.join()
+    print 'HEJ'
     results.put(None)
     results.join()
     # tasks.join()

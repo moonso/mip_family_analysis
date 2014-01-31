@@ -14,25 +14,25 @@ Copyright (c) 2013 __MyCompanyName__. All rights reserved.
 import sys
 import os
 import multiprocessing
+from pprint import pprint as pp
 
 from Mip_Family_Analysis.Models import genetic_models, score_variants
 
 class VariantConsumer(multiprocessing.Process):
     """Yeilds all unordered pairs from a list of objects as tuples, like (obj_1, obj_2)"""
     
-    def __init__(self, task_queue, results_queue, lock, family, verbosity = False):
+    def __init__(self, task_queue, results_queue, family, verbosity = False):
         multiprocessing.Process.__init__(self)
         self.task_queue = task_queue
         self.family = family
         self.results_queue = results_queue
         self.verbosity = verbosity
-        self.lock = lock
     
     def run(self):
         """Run the consuming"""
         proc_name = self.name
         while True:
-            # A batch is a dictionary on the form {gene:{variant_id:(variant_dict, genotypes)}}
+            # A batch is a dictionary on the form {gene:{variant_id:variant_dict}}
             next_batch = self.task_queue.get()
             if self.task_queue.empty():
                 print 'Halllooooouuuu!!', proc_name
@@ -49,10 +49,19 @@ class VariantConsumer(multiprocessing.Process):
             # print '%s: %s' % (proc_name, next_batch)
             variant_batch = genetic_models.check_genetic_models(next_batch, self.family, self.verbosity, proc_name)
             fixed_variants = {}
+            # Make shore we only have one copy of each variant:
             for gene in variant_batch:
-                variant_dict = dict((variant_id, variant_info[0]) for variant_id, variant_info in variant_batch[gene].items())
-                for variant_id, variant in variant_dict.items():
-                    fixed_variants[variant_id] = variant
+                variant_dict = dict((variant_id, variant_info) for variant_id, variant_info in variant_batch[gene].items())
+                for variant_id in variant_dict:
+                    variant_dict[variant_id].pop('Genotypes', 0)
+                    if variant_id in fixed_variants:
+                        if len(variant_dict[variant_id]['Compounds']) > 0:
+                            fixed_variants[variant_id]['Compounds'] = dict(variant_dict[variant_id]['Compounds'].items() +
+                                                                             fixed_variants[variant_id]['Compounds'].items())
+                            fixed_variants[variant_id]['Inheritance_model']['AR_compound'] = True
+                    else:
+                        fixed_variants[variant_id] = variant_dict[variant_id]
+            
             fixed_variants = score_variants.score_variant(fixed_variants, self.family.models_of_inheritance)
             # with self.lock:
             #     for variant_id, variant in fixed_variants.items():
@@ -63,7 +72,7 @@ class VariantConsumer(multiprocessing.Process):
             #         for compound_id in fixed_variants[variant_id].ar_comp_variants:
             #             compound_score = fixed_variants[variant_id].rank_score + fixed_variants[compound_id].rank_score
             #             fixed_variants[variant_id].ar_comp_variants[compound_id] = compound_score
-            
+            # print next_batch
             self.results_queue.put(fixed_variants)
             self.task_queue.task_done()
         return

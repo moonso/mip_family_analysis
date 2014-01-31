@@ -52,7 +52,7 @@ class VariantFileParser(object):
             for line in f:
                 
                 if not line.startswith('#'):
-                    variant, genotypes, new_genes = self.cmms_variant(line.rstrip().split('\t'))
+                    variant, new_genes = self.cmms_variant(line.rstrip().split('\t'))
                     if self.verbosity:
                         new_chrom = variant['Chromosome']
                         if new_chrom != current_chrom:
@@ -65,7 +65,7 @@ class VariantFileParser(object):
                         current_genes = new_genes
                         beginning = False
                         # Add the variant to each of its genes in a batch
-                        batch = self.add_variant(batch, variant, genotypes, new_genes)
+                        batch = self.add_variant(batch, variant, new_genes)
                     else:
                         send = True
                     
@@ -81,60 +81,55 @@ class VariantFileParser(object):
                         if send:
                             # If there is an intergenetic region we do not look at the compounds.
                             # The tasks are tuples like (variant_list, bool(if compounds))
-                            # if len(batch) > 1:
-                            #     pp(batch)
-                            #     print(len(batch))
                             self.batch_queue.put(batch)
                             current_genes = new_genes
-                            batch = self.add_variant({}, variant, genotypes, new_genes)
+                            batch = self.add_variant({}, variant, new_genes)
                         else:
                             current_genes = list(set(current_genes) | set(new_genes))
-                            batch = self.add_variant(batch, variant, genotypes, new_genes) # Add variant batch
+                            batch = self.add_variant(batch, variant, new_genes) # Add variant batch
         self.batch_queue.put(batch)
         return
     
-    def add_variant(self, batch, variant, genotypes, genes):
+    def add_variant(self, batch, variant, genes):
         """Adds the variant to the proper gene(s) in the batch."""
         variant_id = [variant['Chromosome'], variant['Variant_start'], variant['Reference_allele'], variant['Alternative_allele']]
         variant_id = '_'.join(variant_id)
         if len(genes) == 0:
             if len(batch) == 0:
-                batch['-'] = {variant_id:(variant, genotypes)}
+                batch['-'] = {variant_id:variant}
             else:
-                batch['-'][variant_id] = (variant, genotypes)
+                batch['-'][variant_id] = variant
         for gene in genes:
             if gene in batch:
-                batch[gene][variant_id] = (variant, genotypes)
+                batch[gene][variant_id] = variant
             else:
-                batch[gene] = {variant_id:(variant, genotypes)}
+                batch[gene] = {variant_id:variant}
         return batch
     
     
     def cmms_variant(self, splitted_variant_line):
         """Returns a variant object in the cmms format."""
     
-        variant_info = OrderedDict()
-        individual_genotypes = {} #DICT with {ind_id:{<genotype>}}
-        counter = 0
-        ensemble_entry = splitted_variant_line[5]
+        # ensemble_entry = splitted_variant_line[5]
         hgnc_entry = splitted_variant_line[6]
-    
+        
         # These must be parsed separately
         hgnc_genes = get_genes.get_genes(hgnc_entry, 'HGNC')
-        ensemble_genes = get_genes.get_genes(ensemble_entry, 'Ensemble')
+        # ensemble_genes = get_genes.get_genes(ensemble_entry, 'Ensemble')
         
+        return OrderedDict(zip(self.header_line, splitted_variant_line)), hgnc_genes
     
-        for entry in range(len(splitted_variant_line)):
-            
-            if 'IDN' in self.header_line[entry]:
-                # Looks like IDN:11-1-2A
-                gt_info = splitted_variant_line[entry].split(':')
-                individual_genotypes[gt_info[0]] = genotype.Genotype(GT=gt_info[1].split('=')[1])  
-                individual = gt_info[0]
-                if individual not in self.individuals:
-                    raise SyntaxError('One of the individuals in the variant file \
-                                is not in the ped file: %s' % individual)
-            variant_info[self.header_line[entry]] = splitted_variant_line[entry]
+        # for entry in range(len(splitted_variant_line)):
+        #     
+        #     if 'IDN' in self.header_line[entry]:
+        #         # Looks like IDN:11-1-2A
+        #         gt_info = splitted_variant_line[entry].split(':')
+        #         individual_genotypes[gt_info[0]] = genotype.Genotype(GT=gt_info[1].split('=')[1])  
+        #         individual = gt_info[0]
+        #         if individual not in self.individuals:
+        #             raise SyntaxError('One of the individuals in the variant file \
+        #                         is not in the ped file: %s' % individual)
+        #     variant_info[self.header_line[entry]] = splitted_variant_line[entry]
     
         # chrom = variant_info['Chromosome']
         # start = variant_info['Variant_start']
@@ -159,20 +154,26 @@ class VariantFileParser(object):
         #                                     DP=genotype_arguments.get('DP','0'), 
         #                                     GQ=genotype_arguments.get('GQ','0'))
         #     my_variant.genotypes[individual] = my_genotype
-        return variant_info, individual_genotypes, hgnc_genes
+        # return variant_info, individual_genotypes, hgnc_genes
         # return my_variant
 
 
 def main():
     from multiprocessing import JoinableQueue
+    from Mip_Family_Analysis.Utils import header_parser
     parser = argparse.ArgumentParser(description="Parse different kind of pedigree files.")
     parser.add_argument('variant_file', type=str, nargs=1 , help='A file with variant information.')
+    parser.add_argument('-v', '--verbose', action="store_true", help='Increase output verbosity.')
+    
     args = parser.parse_args()
     infile = args.variant_file[0]
+    head = header_parser.HeaderParser(infile)
     file_type = 'cmms'
     variant_queue = JoinableQueue()
-    my_parser = VariantFileParser(infile, variant_queue)
+    start_time = datetime.now()
+    my_parser = VariantFileParser(infile, variant_queue, head, args.verbose)
 
+    print 'Time to parse variants:', datetime.now()-start_time
 
 if __name__ == '__main__':
     main()
