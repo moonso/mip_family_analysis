@@ -46,26 +46,28 @@ class VariantFileParser(object):
         start_chrom = start_parsing
         beginning = True
         batch = {}
-        current_chrom = '1'
+        new_chrom = None
+        current_chrom = None
         current_genes = []
+        nr_of_variants = 0
         with open(self.variant_file, 'rb') as f:
             for line in f:
                 
                 if not line.startswith('#'):
                     variant, new_genes = self.cmms_variant(line.rstrip().split('\t'))
                     if self.verbosity:
+                        nr_of_variants += 1
                         new_chrom = variant['Chromosome']
-                        if new_chrom != current_chrom:
-                            print 'Chromosome', current_chrom, 'parsed!'
-                            print 'Time to parse chromosome', datetime.now()-start_chrom
-                            current_chrom = new_chrom
-                            start_chrom = datetime.now()
+                        if nr_of_variants % 20000 == 0:
+                            print nr_of_variants, 'parsed!'
                     # If we look at the first variant, setup boundary conditions:
                     if beginning:
                         current_genes = new_genes
                         beginning = False
                         # Add the variant to each of its genes in a batch
                         batch = self.add_variant(batch, variant, new_genes)
+                        if self.verbosity:
+                            current_chrom = new_chrom
                     else:
                         send = True
                     
@@ -87,6 +89,17 @@ class VariantFileParser(object):
                         else:
                             current_genes = list(set(current_genes) | set(new_genes))
                             batch = self.add_variant(batch, variant, new_genes) # Add variant batch
+                    
+                    if self.verbosity:
+                        if new_chrom != current_chrom:
+                            print 'Chromosome', current_chrom, 'parsed!'
+                            print 'Time to parse chromosome', datetime.now()-start_chrom
+                            current_chrom = new_chrom
+                            start_chrom = datetime.now()
+                        
+        if self.verbosity:
+            print 'Chromosome', current_chrom, 'parsed!'
+            print 'Time to parse chromosome', datetime.now()-start_chrom
         self.batch_queue.put(batch)
         return
     

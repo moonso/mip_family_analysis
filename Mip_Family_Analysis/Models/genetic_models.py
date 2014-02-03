@@ -227,14 +227,14 @@ def check_X(variant, family):
                 # If the individual is HEALTHY, female and is homozygote alternative it can not be x - linked.
                 if individual_genotype.homo_alt:
                     variant['Inheritance_model']['X'] = False
-                    variant['Inheritance_model']['X'] = False
+                    variant['Inheritance_model']['X_dn'] = False
     
         # The case when the individual is sick
         elif individual.phenotype == 2:
         #If the individual is sick and homozygote ref it can not be x-linked
             if individual_genotype.homo_ref:
                 variant['Inheritance_model']['X'] = False
-                variant['Inheritance_model']['X'] = False
+                variant['Inheritance_model']['X_dn'] = False
             elif individual_genotype.has_variant:
                 check_parents('X', individual, variant, family)
         # Else if phenotype is unknown we can not say anything about the model

@@ -34,7 +34,7 @@ def score_variant(variants, genetic_models = ['AR_hom', 'AD']):
         variant = variants[variant_id]
         score = 0
         # Models of inheritance
-        variant_models = variant.get('Inheritance_model', {})
+        variant_models = get_genetic_models(variant.get('Inheritance_model', {}))
     
         # Predictors
         mutation_taster = variant.get('Mutation_taster', None)
@@ -69,6 +69,8 @@ def score_variant(variants, genetic_models = ['AR_hom', 'AD']):
         
         hgmd = variant.get('HGMD', None)
         
+        
+        
         score += check_inheritance(variant_models, genetic_models)
         score += check_predictions(mutation_taster, avsift, poly_phen)
         score += check_functional_annotation(functional_annotation)
@@ -93,7 +95,7 @@ def check_inheritance(variant_models, genetic_models):
             model_score = 3
     #Else if any model is followed
     if model_score != 3:
-        if variant_models != ['Na']:
+        if len(variant_models) > 0:
             model_score = 1
         else:
             model_score = -12
@@ -136,6 +138,7 @@ def check_frequency_score(thousand_genomes_frequency = None, dbsnp_frequency = N
 
     frequency_score = 0
     freq_scores = []
+    
     def get_freq_score(frequency):
         """Returns a score depending on the frequency"""
         if is_number.is_number(frequency):

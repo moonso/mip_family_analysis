@@ -31,16 +31,18 @@ class VariantConsumer(multiprocessing.Process):
     def run(self):
         """Run the consuming"""
         proc_name = self.name
+        if self.verbosity:
+            print proc_name, 'Starting!'
         while True:
             # A batch is a dictionary on the form {gene:{variant_id:variant_dict}}
             next_batch = self.task_queue.get()
-            if self.task_queue.empty():
-                print 'Halllooooouuuu!!', proc_name
             if self.verbosity:
+                if self.task_queue.empty():
+                    print 'No variants to parse!', proc_name
                 if self.results_queue.full():
-                    print 'Batch results queue Full!'
+                    print 'Batch results queue Full!', proc_name
                 if self.task_queue.full():
-                    print 'Batch tasks queue Full!'
+                    print 'Variant queue full!', proc_name
             if next_batch is None:
                 self.task_queue.task_done()
                 if self.verbosity:
@@ -67,11 +69,27 @@ class VariantConsumer(multiprocessing.Process):
             #     for variant_id, variant in fixed_variants.items():
             #         print variant_id
             #         print variant
-            # for variant_id in fixed_variants:
-            #     if len(fixed_variants[variant_id].ar_comp_variants) > 0:
-            #         for compound_id in fixed_variants[variant_id].ar_comp_variants:
-            #             compound_score = fixed_variants[variant_id].rank_score + fixed_variants[compound_id].rank_score
-            #             fixed_variants[variant_id].ar_comp_variants[compound_id] = compound_score
+            for variant_id in fixed_variants:
+                model_list = []
+                if len(fixed_variants[variant_id]['Compounds']) > 0:
+                    compounds_list = []
+                    for compound_id in fixed_variants[variant_id]['Compounds']:
+                        compound_score = int(fixed_variants[variant_id]['Rank_score']) + int(fixed_variants[compound_id]['Rank_score'])
+                        fixed_variants[variant_id]['Compounds'][compound_id] = compound_score
+                        compounds_list.append(compound_id + '=' + str(compound_score))
+                    fixed_variants[variant_id]['Compounds'] = ':'.join(compounds_list)
+                else:
+                    fixed_variants[variant_id]['Compounds'] = '-'
+                for model in fixed_variants[variant_id]['Inheritance_model']:
+                    if fixed_variants[variant_id]['Inheritance_model'][model]:
+                        model_list.append(model)
+                if len(model_list) == 0:
+                    fixed_variants[variant_id]['Inheritance_model'] = 'NA'
+                else:
+                    fixed_variants[variant_id]['Inheritance_model'] = ':'.join(model_list)
+                fixed_variants[variant_id]['Rank_score'] = str(fixed_variants[variant_id]['Rank_score'])
+                        
+                          
             # print next_batch
             self.results_queue.put(fixed_variants)
             self.task_queue.task_done()

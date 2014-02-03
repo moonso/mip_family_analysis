@@ -13,7 +13,7 @@ import sys
 import os
 import argparse
 import shelve
-from multiprocessing import JoinableQueue, Queue, Lock, cpu_count
+from multiprocessing import Manager, JoinableQueue, Queue, Lock, cpu_count
 from datetime import datetime
 import pkg_resources
 from pprint import pprint as pp
@@ -35,10 +35,18 @@ def get_family(args):
 def get_header(variant_file):
     """Return a fixed header parser"""
     head = header_parser.HeaderParser(variant_file)
-    # head.header.append('Compounds')
-    # head.header.append('Rank_score')
     return head
-    
+
+def print_headers(outfile, header_object):
+    """Print the headers to a results file."""
+    header_object.header.append('Inheritance_model')
+    header_object.header.append('Compounds')
+    header_object.header.append('Rank_score')
+    with open(outfile, 'w') as f: 
+        for head_count in header_object.metadata:
+            f.write(header_object.metadata[head_count])
+        f.write('#' + '\t'.join(header_object.header) + '\n')
+
 
 def main():
     parser = argparse.ArgumentParser(description="Parse different kind of ped files.")
@@ -50,6 +58,8 @@ def main():
     parser.add_argument('--version', action="version", version=pkg_resources.require("Mip_Family_Analysis")[0].version)
     
     parser.add_argument('-v', '--verbose', action="store_true", help='Increase output verbosity.')
+    
+    parser.add_argument('-s', '--silent', action="store_true", help='Do not print the variants.')
     
     parser.add_argument('-ga', '--gene_annotation', type=str, choices=['Ensembl', 'HGNC'], nargs=1, default=['HGNC'], help='What gene annotation should be used, HGNC or Ensembl.')
     
@@ -71,12 +81,6 @@ def main():
         
     # Check the variants:
 
-    if args.verbose:
-        print 'Parsing variants ...'
-        print ''
-
-    
-    start_time_variant_parsing = datetime.now()
     
     var_file = args.variant_file[0]
     file_name, file_extension = os.path.splitext(var_file)
@@ -91,7 +95,7 @@ def main():
     # the consumers will then pick their jobs from this queue:
     # tasks = Queue()
     # The consumers will put their results in the results queue
-    results = JoinableQueue()
+    results = Manager().Queue()
     
     lock = Lock()
     # Create a temporary file for the variants:
@@ -110,45 +114,57 @@ def main():
     var_printer = variant_printer.VariantPrinter(results, lock, temp_file, args.verbose)
     var_printer.start()
 
+
+    if args.verbose:
+        print 'Start parsing the variants ...'
+        print ''
+        start_time_variant_parsing = datetime.now()    
+
+
     var_parser = variant_parser.VariantFileParser(var_file, variant_queue, head, args.verbose)
     var_parser.parse()
     
+    if args.verbose:
+        print 'Variants done!. Time to parse variants: ', (datetime.now() - start_time_variant_parsing)
+        print ''
             
     for i in xrange(num_model_checkers):
         variant_queue.put(None)
     
     variant_queue.join()
-    print 'HEJ'
     results.put(None)
-    results.join()
-    # tasks.join()
-    # var_printer.join()
-
+    var_printer.join()
+    
     if args.verbose:
-        print 'Variants done!. Time to parse variants: ', (datetime.now() - start_time_variant_parsing)
-        print ''
+        print 'Models checked!'
         print 'Start sorting the variants:'
-    #     start_time_variant_sorting = datetime.now()
-    # 
-    # 
-    # if args.outfile:
-    #     results_file = args.outfile[0]
-    # else:
-    #     results_file = 'results.tmp' 
-    # var_sorter = variant_sorter.FileSort(temp_file, results_file)
-    # var_sorter.sort()
-    # 
-    # os.remove(temp_file)
-    # 
-    # if args.verbose:
-    #     print 'Variants sorted!. Time to sort variants: ', (datetime.now() - start_time_variant_sorting)
-    #     print ''
-    # 
-    # if not args.outfile:
-    #     with open(results_file, 'r') as f:
-    #         for line in f:
-    #             print line.rstrip()
-    #     os.remove(results_file)
+        print ''
+        start_time_variant_sorting = datetime.now()
+            
+    
+    if args.outfile:
+        results_file = args.outfile[0]
+    else:
+        results_file = 'results.tmp'
+    
+    print_headers(results_file, head)
+    
+    
+    var_sorter = variant_sorter.FileSort(temp_file, results_file)
+    var_sorter.sort()
+    
+    os.remove(temp_file)
+    
+    if args.verbose:
+        print 'Variants sorted!. Time to sort variants: ', (datetime.now() - start_time_variant_sorting)
+        print ''
+    
+    if not args.outfile:
+        if not args.silent:
+            with open(results_file, 'r') as f:
+                for line in f:
+                    print line.rstrip()
+        os.remove(results_file)
     
 
 

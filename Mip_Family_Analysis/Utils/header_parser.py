@@ -38,7 +38,6 @@ class HeaderParser(object):
                 self.line_counter += 1
                 if line[0] == '#':
                     if line [1] == '#':
-                        line = line.rstrip()
                         self.metadata[self.metadata_counter] = line
                         self.metadata_counter += 1
                     else:

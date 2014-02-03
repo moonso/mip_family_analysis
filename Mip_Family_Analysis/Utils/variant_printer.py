@@ -40,17 +40,15 @@ class VariantPrinter(multiprocessing.Process):
                     if self.task_queue.full():
                         print 'Printing queue full'
                 if next_result is None:
-                    self.task_queue.task_done()
+                    # self.task_queue.task_done()
                     if self.verbosity:
                         print 'All variants printed!'
                     break
                 else:
                     with self.lock:
                         for variant_id in next_result:
-                            # file_handle.write('\t'.join(next_result[variant_id].values())+'\n')
-                            # print next_result[variant_id]
-                            print next_result[variant_id].values()
-                self.task_queue.task_done()
+                            file_handle.write('\t'.join(next_result[variant_id].values())+'\n')
+                # self.task_queue.task_done()
         return
 
 def main():
