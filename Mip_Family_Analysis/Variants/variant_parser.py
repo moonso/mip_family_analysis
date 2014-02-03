@@ -44,6 +44,7 @@ class VariantFileParser(object):
         """Start the parsing"""        
         start_parsing = datetime.now()
         start_chrom = start_parsing
+        start_twenty = start_parsing
         beginning = True
         batch = {}
         new_chrom = None
@@ -59,7 +60,10 @@ class VariantFileParser(object):
                         nr_of_variants += 1
                         new_chrom = variant['Chromosome']
                         if nr_of_variants % 20000 == 0:
-                            print nr_of_variants, 'parsed!'
+                            print nr_of_variants, 'variants parsed!'
+                            print 'Last 20.000 took', datetime.now() - start_twenty, 'to parse.'
+                            print ''
+                            start_twenty = datetime.now()
                     # If we look at the first variant, setup boundary conditions:
                     if beginning:
                         current_genes = new_genes

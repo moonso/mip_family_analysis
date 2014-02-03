@@ -37,8 +37,8 @@ class VariantConsumer(multiprocessing.Process):
             # A batch is a dictionary on the form {gene:{variant_id:variant_dict}}
             next_batch = self.task_queue.get()
             if self.verbosity:
-                if self.task_queue.empty():
-                    print 'No variants to parse!', proc_name
+                # if self.task_queue.empty():
+                #     print 'No variants to parse!', proc_name
                 if self.results_queue.full():
                     print 'Batch results queue Full!', proc_name
                 if self.task_queue.full():

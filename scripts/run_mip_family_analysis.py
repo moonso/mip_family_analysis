@@ -73,7 +73,7 @@ def main():
     # If gene annotation is manually given:
     gene_annotation = args.gene_annotation[0]
     
-    
+    start_time_analysis = datetime.now()
     
     # Start by parsing at the pedigree file:
     my_family = get_family(args)
@@ -97,7 +97,6 @@ def main():
     # The consumers will put their results in the results queue
     results = Manager().Queue()
     
-    lock = Lock()
     # Create a temporary file for the variants:
     
     temp_file = 'temp.tmp'
@@ -111,7 +110,7 @@ def main():
     for w in model_checkers:
         w.start()
     
-    var_printer = variant_printer.VariantPrinter(results, lock, temp_file, args.verbose)
+    var_printer = variant_printer.VariantPrinter(results, temp_file, args.verbose)
     var_printer.start()
 
 
@@ -158,6 +157,7 @@ def main():
     if args.verbose:
         print 'Variants sorted!. Time to sort variants: ', (datetime.now() - start_time_variant_sorting)
         print ''
+        print 'Total time for analysis:' , (datetime.now() - start_time_analysis)
     
     if not args.outfile:
         if not args.silent:

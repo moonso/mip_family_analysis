@@ -39,7 +39,10 @@ def score_variant(variants, genetic_models = ['AR_hom', 'AD']):
         # Predictors
         mutation_taster = variant.get('Mutation_taster', None)
         avsift = variant.get('SIFT', None)
-        poly_phen = variant.get('Poly_phen', None)
+        if 'Poly_phen_hdiv' in variant:
+            poly_phen = variant.get('Poly_phen_hdiv', None)
+        else:
+            poly_phen = variant.get('Poly_phen', None)
         
         # Annotations:
         functional_annotation = variant.get('Functional_annotation', None)

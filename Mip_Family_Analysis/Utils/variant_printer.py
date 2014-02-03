@@ -19,12 +19,11 @@ import multiprocessing
 
 class VariantPrinter(multiprocessing.Process):
     """docstring for VariantPrinter"""
-    def __init__(self, task_queue, lock, outfile, verbosity=False):
+    def __init__(self, task_queue, outfile, verbosity=False):
         multiprocessing.Process.__init__(self)
         self.task_queue = task_queue
         self.outfile = outfile
         self.verbosity = verbosity
-        self.lock = lock
     
     def run(self):
         """Starts the printing"""
@@ -40,15 +39,12 @@ class VariantPrinter(multiprocessing.Process):
                     if self.task_queue.full():
                         print 'Printing queue full'
                 if next_result is None:
-                    # self.task_queue.task_done()
                     if self.verbosity:
                         print 'All variants printed!'
                     break
                 else:
-                    with self.lock:
-                        for variant_id in next_result:
-                            file_handle.write('\t'.join(next_result[variant_id].values())+'\n')
-                # self.task_queue.task_done()
+                    for variant_id in next_result:
+                        file_handle.write('\t'.join(next_result[variant_id].values())+'\n')
         return
 
 def main():
