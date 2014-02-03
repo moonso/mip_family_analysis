@@ -55,14 +55,11 @@ def get_genes(gene_string, gene_annotation = 'Ensembl'):
                     parse_gene(entry)
         
         if 'dist' in gene_string or 'NONE' in gene_string:
-            genes = ['-']
+            genes = []
         else:
             parse_gene(gene_string)
-        
-    if len(genes) == 0:
-        genes = ['-']
-     
-    return genes    
+             
+    return genes
 
 def main():
     pass
