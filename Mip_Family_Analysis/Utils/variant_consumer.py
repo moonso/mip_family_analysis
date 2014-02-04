@@ -60,6 +60,8 @@ class VariantConsumer(multiprocessing.Process):
                         if len(variant_dict[variant_id]['Compounds']) > 0:
                             fixed_variants[variant_id]['Compounds'] = dict(variant_dict[variant_id]['Compounds'].items() +
                                                                              fixed_variants[variant_id]['Compounds'].items())
+                            if variant_id in fixed_variants[variant_id]['Compounds']:
+                                del fixed_variants[variant_id]['Compounds'][variant_id]
                             fixed_variants[variant_id]['Inheritance_model']['AR_compound'] = True
                     else:
                         fixed_variants[variant_id] = variant_dict[variant_id]
