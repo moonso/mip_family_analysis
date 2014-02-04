@@ -32,19 +32,18 @@ class VariantPrinter(multiprocessing.Process):
         proc_name = self.name
         if self.verbosity:
             print proc_name ,'starting!'
-        with open(self.outfile, 'w') as file_handle:
-            while True:
-                next_result = self.task_queue.get()
+        while True:
+            next_result = self.task_queue.get()
+            if self.verbosity:
+                if self.task_queue.full():
+                    print 'Printing queue full'
+            if next_result is None:
                 if self.verbosity:
-                    if self.task_queue.full():
-                        print 'Printing queue full'
-                if next_result is None:
-                    if self.verbosity:
-                        print 'All variants printed!'
-                    break
-                else:
-                    for variant_id in next_result:
-                        file_handle.write('\t'.join(next_result[variant_id].values())+'\n')
+                    print 'All variants printed!'
+                break
+            else:
+                for variant_id in next_result:
+                    self.outfile.write('\t'.join(next_result[variant_id].values()) + '\n')
         return
 
 def main():

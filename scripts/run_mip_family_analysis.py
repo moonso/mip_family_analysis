@@ -13,13 +13,16 @@ import sys
 import os
 import argparse
 import shelve
-from multiprocessing import Manager, JoinableQueue, Queue, Lock, cpu_count
+from multiprocessing import Manager, JoinableQueue, cpu_count
+from tempfile import NamedTemporaryFile
+
 from datetime import datetime
 import pkg_resources
+
 from pprint import pprint as pp
 
 from Mip_Family_Analysis.Family import family_parser
-from Mip_Family_Analysis.Variants import variant_parser, variant_builder
+from Mip_Family_Analysis.Variants import variant_parser
 from Mip_Family_Analysis.Models import genetic_models, score_variants
 from Mip_Family_Analysis.Utils import variant_consumer, variant_sorter, header_parser, variant_printer
 
@@ -99,7 +102,10 @@ def main():
     
     # Create a temporary file for the variants:
     
-    temp_file = 'temp.tmp'
+    temp_file = NamedTemporaryFile()
+    
+    print temp_file
+    print temp_file.name
     
     num_model_checkers = (cpu_count()*2-1)
     
@@ -139,32 +145,36 @@ def main():
         print 'Start sorting the variants:'
         print ''
         start_time_variant_sorting = datetime.now()
-            
     
-    if args.outfile:
-        results_file = args.outfile[0]
-    else:
-        results_file = 'results.tmp'
+    temp_file.seek(0)
     
-    print_headers(results_file, head)
+    for line in temp_file.readlines():
+        print line
     
-    
-    var_sorter = variant_sorter.FileSort(temp_file, results_file)
-    var_sorter.sort()
-    
-    os.remove(temp_file)
-    
-    if args.verbose:
-        print 'Variants sorted!. Time to sort variants: ', (datetime.now() - start_time_variant_sorting)
-        print ''
-        print 'Total time for analysis:' , (datetime.now() - start_time_analysis)
-    
-    if not args.outfile:
-        if not args.silent:
-            with open(results_file, 'r') as f:
-                for line in f:
-                    print line.rstrip()
-        os.remove(results_file)
+    # if args.outfile:
+    #     results_file = args.outfile[0]
+    # else:
+    #     results_file = 'results.tmp'
+    # 
+    # print_headers(results_file, head)
+    # 
+    # 
+    # var_sorter = variant_sorter.FileSort(temp_file, results_file)
+    # var_sorter.sort()
+    # 
+    # os.remove(temp_file)
+    # 
+    # if args.verbose:
+    #     print 'Variants sorted!. Time to sort variants: ', (datetime.now() - start_time_variant_sorting)
+    #     print ''
+    #     print 'Total time for analysis:' , (datetime.now() - start_time_analysis)
+    # 
+    # if not args.outfile:
+    #     if not args.silent:
+    #         with open(results_file, 'r') as f:
+    #             for line in f:
+    #                 print line.rstrip()
+    #     os.remove(results_file)
     
 
 
