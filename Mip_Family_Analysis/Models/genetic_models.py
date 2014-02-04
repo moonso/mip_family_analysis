@@ -80,7 +80,6 @@ def check_genetic_models(variant_batch, family, verbose = False, proc_name = Non
         if gene != '-':
             # First remove all variants that can't be compounds to reduce the number of lookup's:
             compound_candidates = check_compound_candidates(variant_batch[gene], family)
-            # print compound_candidates
             if len(compound_candidates) > 1:
             # Now check the compound candidates:
                 compound_pairs = check_compound(compound_candidates, family)
@@ -116,10 +115,6 @@ def check_genetic_models(variant_batch, family, verbose = False, proc_name = Non
                 variant_batch[gene][variant_pair[0]]['Inheritance_model']['AR_compound'] = True
                 variant_batch[gene][variant_pair[1]]['Inheritance_model']['AR_compound'] = True
     
-    # for gene in variant_batch:
-    #     for variant_id in variant_batch[gene]:
-    #         del variant_batch[gene][variant_id]['Genotypes']
-            
     return variant_batch
 
 def check_compound_candidates(variants, family):
@@ -154,13 +149,6 @@ def check_compound_candidates(variants, family):
             else:
                 # If a sick individual dont have any compounds pairs there are no compound candidates.
                 comp_candidates = {}
-        # else:
-        #     #If an individual is healthy and have compound pairs they can not be deleterious:
-        #     if len(individual_variants) > 1:
-        #         for variant_id in individual_variants:
-        #             if variant_id in comp_candidates:
-        #                 del comp_candidates[variant_id]
-    # This is a dictionary like {variant_id: {ind_id: genotype_object}}
     return comp_candidates
 
 def check_compound(variants, family):

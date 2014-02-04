@@ -27,7 +27,7 @@ def get_genetic_models(model_dict):
             models_followed.append(model)
     return models_followed
 
-def score_variant(variants, genetic_models = ['AR_hom', 'AD']):
+def score_variant(variants, genetic_models = []):
     """Score a variant object according to Henriks score model. Input: A variant object and a list of genetic models."""
     
     for variant_id in variants:
