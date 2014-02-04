@@ -36,12 +36,13 @@ class HeaderParser(object):
         with open(infile, 'rb') as f:
             for line in f:
                 self.line_counter += 1
+                line = line.rstrip()
                 if line[0] == '#':
                     if line [1] == '#':
                         self.metadata[self.metadata_counter] = line
                         self.metadata_counter += 1
                     else:
-                        self.header = line[1:].rstrip().split('\t')
+                        self.header = line[1:].split('\t')
                         for entry in self.header:
                             if entry[:3] == 'IDN':
                                 self.individuals.append(entry.split(':')[1]) 
