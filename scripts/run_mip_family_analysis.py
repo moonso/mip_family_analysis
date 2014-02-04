@@ -45,10 +45,17 @@ def print_headers(outfile, header_object):
     header_object.header.append('Inheritance_model')
     header_object.header.append('Compounds')
     header_object.header.append('Rank_score')
-    with open(outfile, 'w') as f: 
+    if outfile:
+        with open(outfile, 'w') as f: 
+            for head_count in header_object.metadata:
+                f.write(header_object.metadata[head_count]+'\n')
+            f.write('#' + '\t'.join(header_object.header) + '\n')
+    else:
         for head_count in header_object.metadata:
-            f.write(header_object.metadata[head_count])
-        f.write('#' + '\t'.join(header_object.header) + '\n')
+            print header_object.metadata[head_count]
+        print '#' + '\t'.join(header_object.header)
+    return
+        
 
 
 def main():
@@ -143,31 +150,19 @@ def main():
         print 'Start sorting the variants:'
         print ''
         start_time_variant_sorting = datetime.now()
-    
-    # temp_file.seek(0)
-    
-    # for line in open(temp_file.name).readlines():
-    #     print line
-    
-    # print 'Size:', os.path.getsize(temp_file.name)
-    # if args.outfile:
-    #     results_file = args.outfile[0]
-    # else:
-    #     results_file = 'results.tmp'
-    # 
-    # print_headers(results_file, head)
-    # 
-    # 
+        
+    print_headers(args.outfile[0], head)
+        
     var_sorter = variant_sorter.FileSort(temp_file, args.outfile[0])
     var_sorter.sort()
-    # 
-    # os.remove(temp_file)
-    # 
-    # if args.verbose:
-    #     print 'Variants sorted!. Time to sort variants: ', (datetime.now() - start_time_variant_sorting)
-    #     print ''
-    #     print 'Total time for analysis:' , (datetime.now() - start_time_analysis)
-    # 
+    
+    os.remove(temp_file.name)
+    
+    if args.verbose:
+        print 'Variants sorted!. Time to sort variants: ', (datetime.now() - start_time_variant_sorting)
+        print ''
+        print 'Total time for analysis:' , (datetime.now() - start_time_analysis)
+    
     # if not args.outfile:
     #     if not args.silent:
     #         with open(results_file, 'r') as f:

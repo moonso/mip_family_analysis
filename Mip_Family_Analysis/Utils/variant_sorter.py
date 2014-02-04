@@ -69,7 +69,8 @@ class FileSort(object):
                 print ''.join(lines)
         else:
         # In this case the temporary files are over witten.
-            open(fileName, 'w').write(''.join(lines))
+            with open(fileName.name, 'w') as f:
+                f.write(''.join(lines))
     
     
 
@@ -80,11 +81,12 @@ class FileSort(object):
             return None
 
         fileNames = []            
-        
         with open(self._inFile.name, 'r+b') as f:
             size = 0
             lines = []
             for line in f:
+                if not is_number(line.rstrip().split('\t')[-1]):
+                    print 'hej',line
                 size += len(line)
                 lines.append(line)
                 if size >= self._splitSize:
@@ -100,6 +102,10 @@ class FileSort(object):
                 fileNames.append(tmpFile)
                 tmpFile.write(''.join(lines))
                 tmpFile.close()
+            for tmp_file in fileNames:
+                for line in open(tmp_file.name, 'rb'):
+                    if not is_number(line.rstrip().split('\t')[-1]):
+                        print line
             return fileNames
 
     def _mergeFiles(self, files):
@@ -166,14 +172,19 @@ class FileSort(object):
 def main():
     parser = argparse.ArgumentParser(description="Check files.")
     parser.add_argument('infile', type=str, nargs=1, help='Specify the path to the file of interest.')
-    parser.add_argument('-out', '--outfile', type=str, nargs=1, help='Specify the path to the outfile.')
+    parser.add_argument('-out', '--outfile', type=str, nargs=1, default=[None], help='Specify the path to the outfile.')
     args = parser.parse_args()
     infile = args.infile[0]
-    if args.outfile:
-        outfile = args.outfile[0]
-    else:
-        outfile = None
-    fs = FileSort(infile, outfile)
+    new_file = NamedTemporaryFile(delete=False)
+    with open(infile, 'rb') as f:
+        for line in f:
+            if not line.startswith('#'):
+                new_file.write(line)
+    for line in new_file.readlines():
+        if not is_number(line.rstrip().split('\t')[-1]):
+            print 'du', line
+    print 'no errors'
+    fs = FileSort(new_file, args.outfile[0])
     fs.sort()
                     
                 
