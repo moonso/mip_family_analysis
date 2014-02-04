@@ -172,7 +172,7 @@ def check_compound(variants, family):
       the pair is not a deleterious compound heterozygote."""
                 
     true_variant_pairs = []
-        
+    
     # Returns a generator with all possible pairs for this individual, the pairs are python sets:
     my_pairs = pair_generator.Pair_Generator(variants.keys())
     for pair in my_pairs.generate_pairs():
