@@ -53,15 +53,15 @@ class VariantConsumer(multiprocessing.Process):
             fixed_variants = {}
             # Make shore we only have one copy of each variant:
             for gene in variant_batch:
+                #Make one dictionary for each gene:
                 variant_dict = dict((variant_id, variant_info) for variant_id, variant_info in variant_batch[gene].items())
                 for variant_id in variant_dict:
+                    #Remove the 'Genotypes' post since we will not need them for now
                     variant_dict[variant_id].pop('Genotypes', 0)
                     if variant_id in fixed_variants:
                         if len(variant_dict[variant_id]['Compounds']) > 0:
                             fixed_variants[variant_id]['Compounds'] = dict(variant_dict[variant_id]['Compounds'].items() +
                                                                              fixed_variants[variant_id]['Compounds'].items())
-                            if variant_id in fixed_variants[variant_id]['Compounds']:
-                                del fixed_variants[variant_id]['Compounds'][variant_id]
                             fixed_variants[variant_id]['Inheritance_model']['AR_compound'] = True
                     else:
                         fixed_variants[variant_id] = variant_dict[variant_id]
@@ -74,6 +74,8 @@ class VariantConsumer(multiprocessing.Process):
             for variant_id in fixed_variants:
                 model_list = []
                 if len(fixed_variants[variant_id]['Compounds']) > 0:
+                    #We do not want reference to itself as a compound:
+                    fixed_variants[variant_id]['Compounds'].pop(variant_id, 0)
                     compounds_list = []
                     for compound_id in fixed_variants[variant_id]['Compounds']:
                         compound_score = int(fixed_variants[variant_id]['Rank_score']) + int(fixed_variants[compound_id]['Rank_score'])
