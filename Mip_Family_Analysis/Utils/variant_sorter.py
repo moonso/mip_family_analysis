@@ -14,6 +14,7 @@ Modified by Måns Magnusson on 2014-01-14.
 import sys
 import os
 import argparse
+from tempfile import NamedTemporaryFile
 
 from Mip_Family_Analysis.Utils.is_number import is_number
 
@@ -22,11 +23,13 @@ class FileSort(object):
     def __init__(self, inFile, outFile=None, sort_mode = 'rank', splitSize=20):
         """ split size (in MB) """
         self._inFile = inFile
+        self._print_to_screen = False
         
-        if outFile is None:
-            self._outFile = inFile
-        else:
-            self._outFile = outFile
+        # if outFile is None:
+        #     self._print_to_screen = True
+        #     # self._outFile = inFile
+        # else:
+        self._outFile = outFile
                     
         self._splitSize = splitSize * 1000000
                 
@@ -38,11 +41,12 @@ class FileSort(object):
             self._getKey = lambda variant_line: int(variant_line.rstrip().split('\t')[1])
     
     def sort(self):
+        
         files = self._splitFile()
 
         if files is None:
             """ file size <= self._splitSize """            
-            self._sortFile(self._inFile, self._outFile)
+            self._sortFile(self._inFile, self._outFile, True)
             return
 
         for fn in files:
@@ -52,68 +56,67 @@ class FileSort(object):
         self._deleteFiles(files)
 
         
-    def _sortFile(self, fileName, outFile=None):
-        lines = open(fileName).readlines()
+    def _sortFile(self, fileName, outFile=None, ready_to_print=False):
+        lines = open(fileName.name).readlines()
         get_key = self._getKey
         data = [(get_key(line), line) for line in lines if line!='']
         data.sort(reverse=True)
         lines = [line[1] for line in data]
-        if outFile is not None:
-            open(outFile, 'a').write(''.join(lines))
+        if ready_to_print:
+            if outFile:
+                open(outFile, 'a').write(''.join(lines))
+            else:
+                print ''.join(lines)
         else:
-        # In this case the temporary files are over witten or if no output the original file is overwritten.
+        # In this case the temporary files are over witten.
             open(fileName, 'w').write(''.join(lines))
     
     
 
     def _splitFile(self):
-        totalSize = os.path.getsize(self._inFile)
+        totalSize = os.path.getsize(self._inFile.name)
         if totalSize <= self._splitSize:
             # do not split file, the file isn't so big.
             return None
 
         fileNames = []            
-                
-        fn,e = os.path.splitext(self._inFile)
-        f = open(self._inFile)
-        try:
-            i = size = 0
+        
+        with open(self._inFile.name, 'r+b') as f:
+            size = 0
             lines = []
             for line in f:
                 size += len(line)
                 lines.append(line)
                 if size >= self._splitSize:
-                    i += 1
-                    tmpFile = fn + '.%03d' % i
+                    tmpFile = NamedTemporaryFile(delete=False)
                     fileNames.append(tmpFile)
-                    open(tmpFile,'w').write(''.join(lines))
+                    tmpFile.write(''.join(lines))
+                    tmpFile.close()
                     del lines[:]
                     size = 0
-
                                                        
             if size > 0:
-                tmpFile = fn + '.%03d' % (i+1)
+                tmpFile = NamedTemporaryFile(delete=False)
                 fileNames.append(tmpFile)
-                open(tmpFile,'w').write(''.join(lines))
-                
+                tmpFile.write(''.join(lines))
+                tmpFile.close()
             return fileNames
-        finally:
-            f.close()
 
     def _mergeFiles(self, files):
-        files = [open(f) for f in files]
+        files = [open(f.name, 'r+b') for f in files]
         lines = []
         keys = []
         
         for f in files:
-            l = f.readline()        
+            l = f.readline()  
             lines.append(l)
             keys.append(self._getKey(l))
-
+        
         buff = []
         buffSize = self._splitSize/2
         append = buff.append
-        output = open(self._outFile,'a')
+        if self._outFile:
+            output = open(self._outFile,'a')
         try:
             key = max(keys)
             index = keys.index(key)
@@ -122,7 +125,10 @@ class FileSort(object):
                 while key == max(keys):
                     append(lines[index])
                     if len(buff) > buffSize:
-                        output.write(''.join(buff))
+                        if self._outFile:
+                            output.write(''.join(buff))
+                        else:
+                            print ''.join(buff)
                         del buff[:]
                             
                     line = files[index].readline()
@@ -143,13 +149,17 @@ class FileSort(object):
                 index = keys.index(key)
 
             if len(buff)>0:
-                output.write(''.join(buff))
-        finally:    
-            output.close()
+                if self._outFile:
+                    output.write(''.join(buff))
+                else:
+                    print ''.join(buff)
+        finally:
+            if self._outFile:
+                output.close()
     
     def _deleteFiles(self, files):   
         for fn in files:
-            os.remove(fn)        
+            os.remove(fn.name)
     
 
 

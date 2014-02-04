@@ -13,7 +13,7 @@ import sys
 import os
 import argparse
 import shelve
-from multiprocessing import Manager, JoinableQueue, cpu_count
+from multiprocessing import Manager, JoinableQueue, cpu_count, Lock
 from tempfile import NamedTemporaryFile
 
 from datetime import datetime
@@ -56,7 +56,7 @@ def main():
     parser.add_argument('family_file', type=str, nargs=1, help='A pedigree file. Default is cmms format.')
     parser.add_argument('variant_file', type=str, nargs=1, help='A variant file.Default is vcf format')
     
-    parser.add_argument('-o', '--outfile', type=str, nargs=1, help='Specify the path to output, if no file specified the output will be printed to screen.')
+    parser.add_argument('-o', '--outfile', type=str, nargs=1, default=[None],help='Specify the path to output, if no file specified the output will be printed to screen.')
     
     parser.add_argument('--version', action="version", version=pkg_resources.require("Mip_Family_Analysis")[0].version)
     
@@ -94,15 +94,13 @@ def main():
 
     # The variant queue is just a queue with splitted variant lines:
     variant_queue = JoinableQueue()
-    # The task queue is where all jobs(in this case batches that represents variants in a region) is put
-    # the consumers will then pick their jobs from this queue:
-    # tasks = Queue()
     # The consumers will put their results in the results queue
     results = Manager().Queue()
-    
+    # Printer will need a lock!
+    lock = Lock()
     # Create a temporary file for the variants:
     
-    temp_file = NamedTemporaryFile()
+    temp_file = NamedTemporaryFile(delete=False)
     
     print temp_file
     print temp_file.name
@@ -116,7 +114,7 @@ def main():
     for w in model_checkers:
         w.start()
     
-    var_printer = variant_printer.VariantPrinter(results, temp_file, args.verbose)
+    var_printer = variant_printer.VariantPrinter(results, temp_file, lock, args.verbose)
     var_printer.start()
 
 
@@ -146,11 +144,12 @@ def main():
         print ''
         start_time_variant_sorting = datetime.now()
     
-    temp_file.seek(0)
+    # temp_file.seek(0)
     
-    for line in temp_file.readlines():
-        print line
+    # for line in open(temp_file.name).readlines():
+    #     print line
     
+    # print 'Size:', os.path.getsize(temp_file.name)
     # if args.outfile:
     #     results_file = args.outfile[0]
     # else:
@@ -159,8 +158,8 @@ def main():
     # print_headers(results_file, head)
     # 
     # 
-    # var_sorter = variant_sorter.FileSort(temp_file, results_file)
-    # var_sorter.sort()
+    var_sorter = variant_sorter.FileSort(temp_file, args.outfile[0])
+    var_sorter.sort()
     # 
     # os.remove(temp_file)
     # 
