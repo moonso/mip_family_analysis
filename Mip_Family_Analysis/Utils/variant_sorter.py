@@ -20,10 +20,10 @@ from Mip_Family_Analysis.Utils.is_number import is_number
 
 
 class FileSort(object):
-    def __init__(self, inFile, outFile=None, sort_mode = 'rank', splitSize=20):
+    def __init__(self, inFile, outFile=None, sort_mode = 'rank', splitSize=20, silent=False):
         """ split size (in MB) """
         self._inFile = inFile
-        self._print_to_screen = False
+        self._silent = silent
         
         # if outFile is None:
         #     self._print_to_screen = True
@@ -66,7 +66,8 @@ class FileSort(object):
             if outFile:
                 open(outFile, 'a').write(''.join(lines))
             else:
-                print ''.join(lines)
+                if not self._silent:
+                    print ''.join(lines)
         else:
         # In this case the temporary files are over witten.
             with open(fileName.name, 'w') as f:
@@ -134,7 +135,8 @@ class FileSort(object):
                         if self._outFile:
                             output.write(''.join(buff))
                         else:
-                            print ''.join(buff)
+                            if not self._silent:
+                                print ''.join(buff)
                         del buff[:]
                             
                     line = files[index].readline()
@@ -158,7 +160,8 @@ class FileSort(object):
                 if self._outFile:
                     output.write(''.join(buff))
                 else:
-                    print ''.join(buff)
+                    if not self._silent:
+                        print ''.join(buff)
         finally:
             if self._outFile:
                 output.close()
