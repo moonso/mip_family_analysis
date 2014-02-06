@@ -100,6 +100,7 @@ def check_genetic_models(variant_batch, family, verbose = False, proc_name = Non
                 variant_batch[gene][variant_id]['Inheritance_model']['X'] = False
                 variant_batch[gene][variant_id]['Inheritance_model']['X_dn'] = False
             # Check the dominant model:
+                # print variant_batch[gene][variant_id]
                 check_dominant(variant_batch[gene][variant_id], family)
             # Check the recessive model:
                 check_recessive(variant_batch[gene][variant_id], family)
@@ -109,9 +110,9 @@ def check_genetic_models(variant_batch, family, verbose = False, proc_name = Non
                 variant_pair = []
                 for variant in pair:
                     variant_pair.append(variant)
-                # Add the compound pair id to each variant    
+                # Add the compound pair id to each variant
                 variant_batch[gene][variant_pair[0]]['Compounds'][variant_pair[1]] = 0
-                variant_batch[gene][variant_pair[1]]['Compounds'][variant_pair[1]] = 0
+                variant_batch[gene][variant_pair[1]]['Compounds'][variant_pair[0]] = 0
                 variant_batch[gene][variant_pair[0]]['Inheritance_model']['AR_compound'] = True
                 variant_batch[gene][variant_pair[1]]['Inheritance_model']['AR_compound'] = True
     
@@ -121,7 +122,6 @@ def check_compound_candidates(variants, family):
     """Sort out the compound candidates, this function is used to reduce the number of potential candidates."""
     #Make a copy of the dictionary to not change the original one. {variant_id:variant_dict}
     comp_candidates = dict((variant_id, variants[variant_id]) for variant_id in variants)
-    
     for individual in family.individuals:
         individual_variants = {}
         for variant_id in variants:
