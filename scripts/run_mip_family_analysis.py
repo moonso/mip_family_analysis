@@ -21,7 +21,7 @@ import pkg_resources
 
 from pprint import pprint as pp
 
-from Mip_Family_Analysis.Family import family_parser
+from ped_parser import parser
 from Mip_Family_Analysis.Variants import variant_parser
 from Mip_Family_Analysis.Models import genetic_models, score_variants
 from Mip_Family_Analysis.Utils import variant_consumer, variant_sorter, header_parser, variant_printer
@@ -31,7 +31,7 @@ def get_family(args):
     family_type = 'cmms'
     family_file = args.family_file[0]
     
-    my_family_parser = family_parser.FamilyParser(family_file, family_type)
+    my_family_parser = parser.FamilyParser(family_file, family_type)
     # Stupid thing but for now when we only look at one family
     return my_family_parser.families.popitem()[1]
 
@@ -40,22 +40,23 @@ def get_header(variant_file):
     head = header_parser.HeaderParser(variant_file)
     return head
 
-def print_headers(outfile, header_object):
+def print_headers(args, header_object):
     """Print the headers to a results file."""
     header_object.header.append('Inheritance_model')
     header_object.header.append('Compounds')
     header_object.header.append('Rank_score')
-    if outfile:
-        with open(outfile, 'w') as f: 
+    if args.outfile[0]:
+        with open(args.outfile[0], 'w') as f: 
             for head_count in header_object.metadata:
                 f.write(header_object.metadata[head_count]+'\n')
             f.write('#' + '\t'.join(header_object.header) + '\n')
     else:
-        for head_count in header_object.metadata:
-            print header_object.metadata[head_count]
-        print '#' + '\t'.join(header_object.header)
+        if not args.silent:
+            for head_count in header_object.metadata:
+                print header_object.metadata[head_count]
+            print '#' + '\t'.join(header_object.header)
     return
-        
+
 
 
 def main():
@@ -78,8 +79,7 @@ def main():
     parser.add_argument('-tres', '--treshold', type=int, nargs=1, help='Specify the lowest rank score to be outputted.')
     
     args = parser.parse_args()
-    
-    
+        
     # If gene annotation is manually given:
     gene_annotation = args.gene_annotation[0]
     
@@ -151,9 +151,9 @@ def main():
         print ''
         start_time_variant_sorting = datetime.now()
         
-    print_headers(args.outfile[0], head)
+    print_headers(args, head)
         
-    var_sorter = variant_sorter.FileSort(temp_file, args.outfile[0])
+    var_sorter = variant_sorter.FileSort(temp_file, outFile=args.outfile[0], silent=args.silent)
     var_sorter.sort()
     
     os.remove(temp_file.name)
