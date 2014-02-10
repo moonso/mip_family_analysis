@@ -284,13 +284,20 @@ def check_parents(model, individual, variant, family):
 
     if model == 'recessive':
         # If any of the parents doesent exist de novo will be true as the model is specified
+        # If any of the parents doesent exist AR_hom will also be true(since 10/2-2014)
         if mother_id != '0' and father_id != '0':
-        # If both parents have the variant or if one of the parents are homozygote alternative, the de novo model is NOT followed, otherwise de novo is true.
+        # If both parents exists and both parents have the variant or if one of the (sick) parents
+        # are homozygote alternative, the de novo model is NOT followed, otherwise de novo is true.
             if ((mother_genotype.homo_alt or father_genotype.homo_alt) or 
                 (mother_genotype.has_variant and father_genotype.has_variant)):
                 variant['Inheritance_model']['AR_hom_denovo'] = False
-        if variant['Inheritance_model']['AR_hom_denovo']:# If de novo is true then the it is only de novo
-            variant['Inheritance_model']['AR_hom'] = False
+                # If de novo is true then the it is only de novo in this case
+                if variant['Inheritance_model']['AR_hom_denovo']:
+                    variant['Inheritance_model']['AR_hom'] = False
+        else:   
+            if (mother_genotype.homo_alt or father_genotype.homo_alt):
+                variant['Inheritance_model']['AR_hom_denovo'] = False
+                
                 
     elif model == 'dominant':
     # If one of the parents have the variant on any form the de novo model is NOT followed.

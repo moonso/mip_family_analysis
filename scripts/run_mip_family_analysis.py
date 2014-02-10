@@ -109,8 +109,8 @@ def main():
     
     temp_file = NamedTemporaryFile(delete=False)
     
-    print temp_file
-    print temp_file.name
+    if args.verbose:
+        print 'Temp files:' ,temp_file.name
     
     num_model_checkers = (cpu_count()*2-1)
     
