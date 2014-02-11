@@ -46,8 +46,7 @@ class VariantPrinter(multiprocessing.Process):
             else:
                 for variant_id in next_result:
                     print_line = [next_result[variant_id].get(entry, '-') for entry in self.header]
-                    print '\t'.join(print_line)
-                    # self.outfile.write('\t'.join(next_result[variant_id].values()) + '\n')
+                    self.outfile.write('\t'.join(print_line) + '\n')
         return
 
 def main():
