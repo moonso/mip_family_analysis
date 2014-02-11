@@ -85,7 +85,7 @@ def score_variant(variants, genetic_models = []):
         score += check_phylop_score(phylop)
         score += check_segmental_duplication(segdup)
         score += check_hgmd(hgmd)
-        variant['Rank_score'] = score
+        variant['Individual_rank_score'] = score
         
     return variants
     

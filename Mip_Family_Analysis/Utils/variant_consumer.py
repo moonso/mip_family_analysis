@@ -67,21 +67,22 @@ class VariantConsumer(multiprocessing.Process):
                         fixed_variants[variant_id] = variant_dict[variant_id]
             
             fixed_variants = score_variants.score_variant(fixed_variants, self.family.models_of_inheritance)
-            # with self.lock:
-            #     for variant_id, variant in fixed_variants.items():
-            #         print variant_id
-            #         print variant
+            
+            # Fix the compound scores and make ready for printing:
+            
             for variant_id in fixed_variants:
                 model_list = []
+                fixed_variants[variant_id]['Rank_score'] = str(fixed_variants[variant_id]['Individual_rank_score'])
                 if len(fixed_variants[variant_id]['Compounds']) > 0:
                     #We do not want reference to itself as a compound:
                     fixed_variants[variant_id]['Compounds'].pop(variant_id, 0)
+                    # Put the compound scores
                     compounds_list = []
                     for compound_id in fixed_variants[variant_id]['Compounds']:
-                        compound_score = int(fixed_variants[variant_id]['Rank_score']) + int(fixed_variants[compound_id]['Rank_score'])
+                        compound_score = (int(fixed_variants[variant_id]['Individual_rank_score']) + 
+                                         int(fixed_variants[compound_id]['Individual_rank_score']))
                         fixed_variants[variant_id]['Compounds'][compound_id] = compound_score
                         compounds_list.append(compound_id + '=' + str(compound_score))
-                    fixed_variants[variant_id]['Compounds'] = ':'.join(compounds_list)
                 else:
                     fixed_variants[variant_id]['Compounds'] = '-'
                 for model in fixed_variants[variant_id]['Inheritance_model']:
@@ -89,10 +90,17 @@ class VariantConsumer(multiprocessing.Process):
                         model_list.append(model)
                 if len(model_list) == 0:
                     fixed_variants[variant_id]['Inheritance_model'] = 'NA'
+                elif 'AR_compound' in model_list:
+                    if len(model_list) == 1:
+                        fixed_variants[variant_id]['Rank_score'] = str(min(fixed_variants[variant_id]['Individual_rank_score'], 
+                                                    max([int(value) for value in fixed_variants[variant_id]['Compounds'].values()])))
+                        fixed_variants[variant_id]['Inheritance_model'] = 'AR_compound'
+                    fixed_variants[variant_id]['Compounds'] = ':'.join(compounds_list)
+                    fixed_variants[variant_id]['Inheritance_model'] = ':'.join(model_list)
                 else:
                     fixed_variants[variant_id]['Inheritance_model'] = ':'.join(model_list)
-                fixed_variants[variant_id]['Rank_score'] = str(fixed_variants[variant_id]['Rank_score'])
-                        
+                                
+                fixed_variants[variant_id]['Individual_rank_score'] = str(fixed_variants[variant_id]['Individual_rank_score'])                        
                           
             # print next_batch
             self.results_queue.put(fixed_variants)
