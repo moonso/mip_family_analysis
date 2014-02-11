@@ -19,12 +19,12 @@ import multiprocessing
 
 class VariantPrinter(multiprocessing.Process):
     """docstring for VariantPrinter"""
-    def __init__(self, task_queue, outfile, lock, verbosity=False):
+    def __init__(self, task_queue, outfile, head, verbosity=False):
         multiprocessing.Process.__init__(self)
         self.task_queue = task_queue
         self.outfile = outfile
         self.verbosity = verbosity
-        self.lock = lock
+        self.header = head.header
     
     def run(self):
         """Starts the printing"""
@@ -45,7 +45,9 @@ class VariantPrinter(multiprocessing.Process):
                 break
             else:
                 for variant_id in next_result:
-                    self.outfile.write('\t'.join(next_result[variant_id].values()) + '\n')
+                    print_line = [next_result[variant_id].get(entry, '-') for entry in self.header]
+                    print '\t'.join(print_line)
+                    # self.outfile.write('\t'.join(next_result[variant_id].values()) + '\n')
         return
 
 def main():

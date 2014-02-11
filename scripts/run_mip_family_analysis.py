@@ -40,45 +40,86 @@ def get_header(variant_file):
     head = header_parser.HeaderParser(variant_file)
     return head
 
-def print_headers(args, header_object):
-    """Print the headers to a results file."""
-    header_object.header.append('Inheritance_model')
-    header_object.header.append('Compounds')
-    header_object.header.append('Rank_score')
-    if args.outfile[0]:
-        with open(args.outfile[0], 'w') as f: 
-            for head_count in header_object.metadata:
-                f.write(header_object.metadata[head_count]+'\n')
-            f.write('#' + '\t'.join(header_object.header) + '\n')
-    else:
-        if not args.silent:
-            for head_count in header_object.metadata:
-                print header_object.metadata[head_count]
-            print '#' + '\t'.join(header_object.header)
+def add_cmms_metadata(header_object):
+    """Add the necessary metadata and header columns that this software operates on."""
+    header_object.add_metadata('Individual_rank_score', data_type='Integer', 
+        description='This is the correct rank score if the variant only follows the AR_comp model.', 
+        dbname='Individual Rank Score'
+    )
+    header_object.add_metadata('Rank_score', data_type='Integer', 
+        description='Rank score of disease casuing potential. Higher the more likely disease casuing.', 
+        dbname='Rank Score'
+    )
+    header_object.add_metadata('Compounds', data_type='String', 
+        description='This is the correct rank score if the variant only follows the AR_comp model.', 
+        dbname='Individual Rank Score'
+    )
+    header_object.add_metadata('Inheritance_model', data_type='String', 
+        description='Variant inheritance pattern.', 
+        dbname='Inheritance Model'
+    )
+    
+    header_object.add_header('Inheritance_model')
+    header_object.add_header('Individual_rank_score')
+    header_object.add_header('Compounds')
+    header_object.add_header('Rank_score')
     return
 
-
+def print_headers(args, header_object):
+    """Print the headers to a results file."""
+    lines_to_print = header_object.get_headers_for_print()
+    if args.outfile[0]:
+        with open(args.outfile[0], 'w') as f: 
+            for line in header_object.lines_to_print:
+                f.write(line + '\n')
+    elif not args.silent:
+        for line in lines_to_print:
+            print line
+    return
 
 def main():
     parser = argparse.ArgumentParser(description="Parse different kind of ped files.")
-    parser.add_argument('family_file', type=str, nargs=1, help='A pedigree file. Default is cmms format.')
-    parser.add_argument('variant_file', type=str, nargs=1, help='A variant file.Default is vcf format')
     
-    parser.add_argument('-o', '--outfile', type=str, nargs=1, default=[None],help='Specify the path to output, if no file specified the output will be printed to screen.')
-    
-    parser.add_argument('--version', action="version", version=pkg_resources.require("Mip_Family_Analysis")[0].version)
-    
-    parser.add_argument('-v', '--verbose', action="store_true", help='Increase output verbosity.')
-    
-    parser.add_argument('-s', '--silent', action="store_true", help='Do not print the variants.')
-    
-    parser.add_argument('-ga', '--gene_annotation', type=str, choices=['Ensembl', 'HGNC'], nargs=1, default=['HGNC'], help='What gene annotation should be used, HGNC or Ensembl.')
-    
-    parser.add_argument('-pos', '--position', action="store_true", help='If output should be sorted by position. Default is sorted on rank score')
-
-    parser.add_argument('-tres', '--treshold', type=int, nargs=1, help='Specify the lowest rank score to be outputted.')
-    
+    parser.add_argument('family_file', 
+        type=str, nargs=1,
+        help='A pedigree file. Default is cmms format.'
+    )
+    parser.add_argument('variant_file', 
+        type=str, nargs=1, 
+        help='A variant file.Default is vcf format'
+    )
+    parser.add_argument('-o', '--outfile', 
+        type=str, nargs=1, default=[None], 
+        help='Specify the path to output, if no file specified the output will be printed to screen.'
+    )
+    parser.add_argument('--version', 
+        action="version", version=pkg_resources.require("Mip_Family_Analysis")[0].version
+    )
+    parser.add_argument('-v', '--verbose', 
+        action="store_true", 
+        help='Increase output verbosity.'
+    )
+    parser.add_argument('-s', '--silent', 
+        action="store_true", 
+        help='Do not print the variants.'
+    )
+    parser.add_argument('-ga', '--gene_annotation', 
+        type=str, choices=['Ensembl', 'HGNC'], nargs=1, default=['HGNC'], 
+        help='What gene annotation should be used, HGNC or Ensembl.'
+    )
+    parser.add_argument('-pos', '--position', 
+        action="store_true", 
+        help='If output should be sorted by position. Default is sorted on rank score'
+    )
+    parser.add_argument('-tres', '--treshold', 
+        type=int, nargs=1, 
+        help='Specify the lowest rank score to be outputted.'
+    )
     args = parser.parse_args()
+    
+    # Print program version to std err:
+    
+    print >> sys.stderr, 'Version:', pkg_resources.require("Mip_Family_Analysis")[0].version
         
     # If gene annotation is manually given:
     gene_annotation = args.gene_annotation[0]
@@ -90,21 +131,21 @@ def main():
     preferred_models = my_family.models_of_inheritance
         
     # Check the variants:
-
+    
     
     var_file = args.variant_file[0]
     file_name, file_extension = os.path.splitext(var_file)
     
     # Take care of the headers from the variant file:
     head = get_header(var_file)
-        
-
+    
+    add_cmms_metadata(head)
+    
     # The variant queue is just a queue with splitted variant lines:
     variant_queue = JoinableQueue()
     # The consumers will put their results in the results queue
     results = Manager().Queue()
-    # Printer will need a lock!
-    lock = Lock()
+    
     # Create a temporary file for the variants:
     
     temp_file = NamedTemporaryFile(delete=False)
@@ -121,16 +162,16 @@ def main():
     for w in model_checkers:
         w.start()
     
-    var_printer = variant_printer.VariantPrinter(results, temp_file, lock, args.verbose)
+    var_printer = variant_printer.VariantPrinter(results, temp_file, head, args.verbose)
     var_printer.start()
-
-
+    
+    
     if args.verbose:
         print 'Start parsing the variants ...'
         print ''
         start_time_variant_parsing = datetime.now()    
-
-
+    
+    
     var_parser = variant_parser.VariantFileParser(var_file, variant_queue, head, args.verbose)
     var_parser.parse()
     
@@ -163,12 +204,12 @@ def main():
         print ''
         print 'Total time for analysis:' , (datetime.now() - start_time_analysis)
     
-    # if not args.outfile:
-    #     if not args.silent:
-    #         with open(results_file, 'r') as f:
-    #             for line in f:
-    #                 print line.rstrip()
-    #     os.remove(results_file)
+    # # if not args.outfile:
+    # #     if not args.silent:
+    # #         with open(results_file, 'r') as f:
+    # #             for line in f:
+    # #                 print line.rstrip()
+    # #     os.remove(results_file)
     
 
 
