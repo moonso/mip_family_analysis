@@ -70,7 +70,7 @@ def print_headers(args, header_object):
     lines_to_print = header_object.get_headers_for_print()
     if args.outfile[0]:
         with open(args.outfile[0], 'w') as f: 
-            for line in header_object.lines_to_print:
+            for line in lines_to_print:
                 f.write(line + '\n')
     elif not args.silent:
         for line in lines_to_print:
