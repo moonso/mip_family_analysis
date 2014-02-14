@@ -20,7 +20,7 @@ import gzip
 
 from pprint import pprint as pp
 
-from genmod.utils import interval_tree, is_number
+from Mip_Family_Analysis.Utils import interval_tree, is_number
 
 class AnnotationParser(object):
     """Parses a file with family info and creates a family object with individuals."""
