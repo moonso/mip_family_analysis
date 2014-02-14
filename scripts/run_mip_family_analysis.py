@@ -213,13 +213,6 @@ def main():
         print ''
         print 'Total time for analysis:' , (datetime.now() - start_time_analysis)
     
-    # # if not args.outfile:
-    # #     if not args.silent:
-    # #         with open(results_file, 'r') as f:
-    # #             for line in f:
-    # #                 print line.rstrip()
-    # #     os.remove(results_file)
-    
 
 
 if __name__ == '__main__':
