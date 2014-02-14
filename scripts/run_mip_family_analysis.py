@@ -24,7 +24,7 @@ from pprint import pprint as pp
 from ped_parser import parser
 from Mip_Family_Analysis.Variants import variant_parser
 from Mip_Family_Analysis.Models import genetic_models, score_variants
-from Mip_Family_Analysis.Utils import variant_consumer, variant_sorter, header_parser, variant_printer
+from Mip_Family_Analysis.Utils import variant_consumer, variant_sorter, header_parser, variant_printer, annotation_parser
 
 def get_family(args):
     """Return the family"""
@@ -88,6 +88,14 @@ def main():
         type=str, nargs=1, 
         help='A variant file.Default is vcf format'
     )
+    parser.add_argument('annotation_file', 
+        type=str, nargs=1, 
+        help='A annotations file. Default is ref_gene format.'
+    )
+    parser.add_argument('-at', '--annotation_type',  
+        type=str, nargs=1, choices=['bed', 'ccds', 'gtf', 'ref_gene'],
+        default=['ref_gene'], help='Specify the format of the annotation file. Default: "ref_gene"'
+    )    
     parser.add_argument('-o', '--outfile', 
         type=str, nargs=1, default=[None], 
         help='Specify the path to output, if no file specified the output will be printed to screen.'
@@ -103,10 +111,6 @@ def main():
         action="store_true", 
         help='Do not print the variants.'
     )
-    parser.add_argument('-ga', '--gene_annotation', 
-        type=str, choices=['Ensembl', 'HGNC'], nargs=1, default=['HGNC'], 
-        help='What gene annotation should be used, HGNC or Ensembl.'
-    )
     parser.add_argument('-pos', '--position', 
         action="store_true", 
         help='If output should be sorted by position. Default is sorted on rank score'
@@ -116,38 +120,44 @@ def main():
         help='Specify the lowest rank score to be outputted.'
     )
     args = parser.parse_args()
+    var_file = args.variant_file[0]
+    file_name, file_extension = os.path.splitext(var_file)
+    anno_file = args.annotation_file[0]
     
     # Print program version to std err:
     
     print >> sys.stderr, 'Version:', pkg_resources.require("Mip_Family_Analysis")[0].version
         
-    # If gene annotation is manually given:
-    gene_annotation = args.gene_annotation[0]
-    
     start_time_analysis = datetime.now()
     
     # Start by parsing at the pedigree file:
     my_family = get_family(args)
     preferred_models = my_family.models_of_inheritance
-        
-    # Check the variants:
-    
-    
-    var_file = args.variant_file[0]
-    file_name, file_extension = os.path.splitext(var_file)
     
     # Take care of the headers from the variant file:
     head = get_header(var_file)
-    
+        
     add_cmms_metadata(head)
     
+    # Parse the annotations file:
+    
+    if args.verbose:
+        print 'Parsing annotation ...'
+        print ''
+        start_time_annotation = datetime.now()
+    
+    annotation_trees = annotation_parser.AnnotationParser(anno_file, args.annotation_type[0])
+    
+    if args.verbose:
+        print 'Annotation Parsed!'
+        print 'Time to parse annotation:', datetime.now() - start_time_annotation
+    
+        
     # The variant queue is just a queue with splitted variant lines:
     variant_queue = JoinableQueue()
     # The consumers will put their results in the results queue
     results = Manager().Queue()
-    
     # Create a temporary file for the variants:
-    
     temp_file = NamedTemporaryFile(delete=False)
     
     if args.verbose:
@@ -170,9 +180,8 @@ def main():
         print 'Start parsing the variants ...'
         print ''
         start_time_variant_parsing = datetime.now()    
-    
-    
-    var_parser = variant_parser.VariantFileParser(var_file, variant_queue, head, args.verbose)
+        
+    var_parser = variant_parser.VariantFileParser(var_file, variant_queue, head, annotation_trees, args.verbose)
     var_parser.parse()
     
     if args.verbose:
@@ -191,7 +200,7 @@ def main():
         print 'Start sorting the variants:'
         print ''
         start_time_variant_sorting = datetime.now()
-        
+    
     print_headers(args, head)
         
     var_sorter = variant_sorter.FileSort(temp_file, outFile=args.outfile[0], silent=args.silent)
