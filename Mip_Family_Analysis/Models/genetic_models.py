@@ -82,11 +82,14 @@ def check_genetic_models(variant_batch, family, verbose = False, proc_name = Non
             compound_candidates = check_compound_candidates(variant_batch[gene], family)
             if len(compound_candidates) > 1:
             # Now check the compound candidates:
+                if len(compound_candidates) > 100:
+                    print len(compound_candidates), gene
                 compound_pairs = check_compounds(compound_candidates, family)
         
         for variant_id in variant_batch[gene]:
-            variant_batch[gene][variant_id]['Inheritance_model'] = {'X' : True, 'X_dn' : True, 'AD' : True, 'AD_denovo' : True, 
-                                            'AR_hom' : True, 'AR_hom_denovo' : True, 'AR_compound' : False}
+            variant_batch[gene][variant_id]['Inheritance_model'] = {'X' : True, 'X_dn' : True,
+            'AD' : True, 'AD_denovo' : True, 'AR_hom' : True, 'AR_hom_denovo' : True, 'AR_compound' : False}
+            
             variant_batch[gene][variant_id]['Compounds'] = {}
             # Only check X-linked for the variants in the X-chromosome:
             # For X-linked we do not need to check the other models

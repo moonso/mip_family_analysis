@@ -14,11 +14,14 @@ Copyright (c) 2013 __MyCompanyName__. All rights reserved.
 
 import sys
 import os
+import re
 import argparse
 if sys.version_info < (2, 7):
     from ordereddict import OrderedDict
 else:
     from collections import OrderedDict
+
+from pprint import pprint as pp
 
 ### TODO make a proper vcf parser ###
 
@@ -31,14 +34,18 @@ class HeaderParser(object):
         self.header=[]
         self.line_counter = 0
         self.individuals = []
+        self.metadata_pattern = re.compile(r'''\#\#COLUMNNAME="(?P<colname>[^"]*)",
+            (?P<info>.*)''', re.VERBOSE)
         with open(infile, 'rb') as f:
             for line in f:
                 self.line_counter += 1
                 line = line.rstrip()
                 if line.startswith('##'):
-                    meta_line = OrderedDict((col_name, value) for col_name, value in (x.split('=') for x in line[2:].split('\t')))
-                    # print meta_line['COLUMNNAME'].strip('"')
-                    self.metadata[meta_line['COLUMNNAME'].strip('"')] = meta_line
+                    match = self.metadata_pattern.match(line)
+                    if not match:
+                        raise SyntaxError("One of the metadata lines is malformed: %s" % line)
+                    matches = [match.group('colname'), match.group('info')]
+                    self.metadata[match.group('colname')] = line
                 elif line.startswith('#'):
                     self.header = line[1:].split('\t')
                     for entry in self.header:
@@ -51,20 +58,19 @@ class HeaderParser(object):
         
     def add_metadata(self, column_name, data_type=None, version=None, description=None, dbname=None):
         """Add metadata info to the header."""
-        new_metaline = OrderedDict()
+        data_line = '##COLUMNAME='+'"'+ column_name +'"'
         if column_name not in self.metadata:
-            new_metaline['COLUMNNAME'] = '"' + column_name + '"'
             if data_type:
                 if data_type not in ['Float', 'String', 'Integer']:
                     raise SyntaxError("Type must be 'Float', 'String' or 'Integer'. You tried: %s" % data_type)
-                new_metaline['TYPE'] = '"' + data_type + '"'
+                data_line = ', TYPE="' + data_type + '"'
             if version:
-                new_metaline['VERSION'] = '"' + version + '"'
+                data_line = ', VERSION="' + version + '"'
             if description:
-                new_metaline['DESCRIPTION'] = '"' + description + '"'
+                data_line = ', DESCRIPTION="' + description + '"'
             if dbname:
-                new_metaline['SCOUTHEADER'] = '"' + dbname + '"'
-            self.metadata[column_name] = new_metaline
+                data_line = ', SCOUTHEADER="' + dbname + '"'
+            self.metadata[column_name] = data_line
         return
     
     def add_header(self, header_name):
@@ -78,10 +84,7 @@ class HeaderParser(object):
         """Returns a list with the metadata lines on correct format."""
         lines_for_print = []
         for header in self.metadata:
-            header_line = ['='.join(x) for x in ([key, self.metadata[header][key]] for key in self.metadata[header])]
-            header_line[0] = '##' + header_line[0]
-            lines_for_print.append('\t'.join(header_line))
-            # print ['\t'.join(head_line) for head_line in header_line]
+            lines_for_print.append(self.metadata[header])
         lines_for_print.append('\t'.join(self.header))
         lines_for_print[-1] = '#' + lines_for_print[-1]
         return lines_for_print
