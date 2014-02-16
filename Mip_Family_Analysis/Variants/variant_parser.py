@@ -50,6 +50,11 @@ class VariantFileParser(object):
         current_chrom = None
         current_features = []
         nr_of_variants = 0
+        
+        if self.verbosity:
+            print 'Start parsing the variants ...'
+            print ''
+        
         with open(self.variant_file, 'rb') as f:
             for line in f:
                 
@@ -103,7 +108,11 @@ class VariantFileParser(object):
         if self.verbosity:
             print 'Chromosome', current_chrom, 'parsed!'
             print 'Time to parse chromosome', datetime.now()-start_chrom
+            print ''
+            print 'Variants done!. Time to parse variants: ', (datetime.now() - start_parsing)
+            print ''
         self.batch_queue.put(batch)
+        
         return
     
     def add_variant(self, batch, variant, features):

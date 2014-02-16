@@ -34,7 +34,7 @@ class HeaderParser(object):
         self.header=[]
         self.line_counter = 0
         self.individuals = []
-        self.metadata_pattern = re.compile(r'''\#\#COLUMNNAME="(?P<colname>[^"]*)",
+        self.metadata_pattern = re.compile(r'''\#\#COLUMNNAME="(?P<colname>[^"]*)"
             (?P<info>.*)''', re.VERBOSE)
         with open(infile, 'rb') as f:
             for line in f:
@@ -56,20 +56,21 @@ class HeaderParser(object):
                 else:
                     break
         
-    def add_metadata(self, column_name, data_type=None, version=None, description=None, dbname=None):
+    def add_metadata(self, column_name, data_type=None, version=None, description=None, dbname=None, delimiter='\t'):
         """Add metadata info to the header."""
         data_line = '##COLUMNAME='+'"'+ column_name +'"'
         if column_name not in self.metadata:
             if data_type:
                 if data_type not in ['Float', 'String', 'Integer']:
                     raise SyntaxError("Type must be 'Float', 'String' or 'Integer'. You tried: %s" % data_type)
-                data_line = ', TYPE="' + data_type + '"'
+                data_line += delimiter + 'TYPE="' + data_type + '"'
             if version:
-                data_line = ', VERSION="' + version + '"'
+                data_line += delimiter + 'VERSION="' + version + '"'
             if description:
-                data_line = ', DESCRIPTION="' + description + '"'
+                data_line += delimiter + 'DESCRIPTION="' + description + '"'
             if dbname:
-                data_line = ', SCOUTHEADER="' + dbname + '"'
+                data_line += delimiter + 'SCOUTHEADER="' + dbname + '"'
+            self.metadata.pop(column_name, 0)
             self.metadata[column_name] = data_line
         return
     

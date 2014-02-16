@@ -42,21 +42,22 @@ def get_header(variant_file):
 
 def add_cmms_metadata(header_object):
     """Add the necessary metadata and header columns that this software operates on."""
+
+    header_object.add_metadata('Inheritance_model', data_type='String', 
+        description='Variant inheritance pattern.', 
+        dbname='Inheritance Model'
+    )
     header_object.add_metadata('Individual_rank_score', data_type='Integer', 
+        description='This is the correct rank score if the variant only follows the AR_comp model.', 
+        dbname='Individual Rank Score'
+    )
+    header_object.add_metadata('Compounds', data_type='String', 
         description='This is the correct rank score if the variant only follows the AR_comp model.', 
         dbname='Individual Rank Score'
     )
     header_object.add_metadata('Rank_score', data_type='Integer', 
         description='Rank score of disease casuing potential. Higher the more likely disease casuing.', 
         dbname='Rank Score'
-    )
-    header_object.add_metadata('Compounds', data_type='String', 
-        description='This is the correct rank score if the variant only follows the AR_comp model.', 
-        dbname='Individual Rank Score'
-    )
-    header_object.add_metadata('Inheritance_model', data_type='String', 
-        description='Variant inheritance pattern.', 
-        dbname='Inheritance Model'
     )
     
     header_object.add_header('Inheritance_model')
@@ -119,7 +120,9 @@ def main():
         type=int, nargs=1, 
         help='Specify the lowest rank score to be outputted.'
     )
+    
     args = parser.parse_args()
+    
     var_file = args.variant_file[0]
     file_name, file_extension = os.path.splitext(var_file)
     anno_file = args.annotation_file[0]
@@ -164,8 +167,11 @@ def main():
         print 'Temp files:' ,temp_file.name
     
     num_model_checkers = (cpu_count()*2-1)
+
+    if args.verbose:
+        print 'Number of cpus:' ,cpu_count()
     
-        
+    
     model_checkers = [variant_consumer.VariantConsumer(variant_queue, results, my_family, 
                      args.verbose) for i in xrange(num_model_checkers)]
     
@@ -175,19 +181,10 @@ def main():
     var_printer = variant_printer.VariantPrinter(results, temp_file, head, args.verbose)
     var_printer.start()
     
-    
-    if args.verbose:
-        print 'Start parsing the variants ...'
-        print ''
-        start_time_variant_parsing = datetime.now()    
         
     var_parser = variant_parser.VariantFileParser(var_file, variant_queue, head, annotation_trees, args.verbose)
-    var_parser.parse()
+    var_parser.parse()            
     
-    if args.verbose:
-        print 'Variants done!. Time to parse variants: ', (datetime.now() - start_time_variant_parsing)
-        print ''
-            
     for i in xrange(num_model_checkers):
         variant_queue.put(None)
     
