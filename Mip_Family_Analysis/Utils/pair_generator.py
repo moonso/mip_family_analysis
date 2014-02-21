@@ -34,10 +34,11 @@ class Pair_Generator(object):
 def main():
     my_list = ['a', 'b', 'c', 'd']
     for pairs in Pair_Generator(my_list).generate_pairs():
-        print pairs
+        print(pairs)
+    print('')
     my_short_list = ['1', '2']
     for pairs in Pair_Generator(my_short_list).generate_pairs():
-        print pairs
+        print(pairs)
 
 
 if __name__ == '__main__':

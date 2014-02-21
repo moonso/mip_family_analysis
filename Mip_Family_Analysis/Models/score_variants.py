@@ -87,7 +87,7 @@ def score_variant(variants, genetic_models = []):
         score += check_hgmd(hgmd)
         variant['Individual_rank_score'] = score
         
-    return variants
+    return
     
 def check_inheritance(variant_models, genetic_models):
     """Check if the models of inheritance are followed for the variant."""
