@@ -115,8 +115,8 @@ def check_genetic_models(variant_batch, family, verbose = False, proc_name = Non
             for pair in compound_candidates.generate_pairs():
                 # Add the compound pair id to each variant
                 if check_compounds(variant_batch[gene][pair[0]], variant_batch[gene][pair[0]], family):
-                    variant_batch[gene][pair[0]]['Compounds'][pair[1]] = ''
-                    variant_batch[gene][pair[1]]['Compounds'][pair[0]] = ''
+                    variant_batch[gene][pair[0]]['Compounds'][pair[1]] = 0
+                    variant_batch[gene][pair[1]]['Compounds'][pair[0]] = 0
                     variant_batch[gene][pair[0]]['Inheritance_model']['AR_compound'] = True
                     variant_batch[gene][pair[1]]['Inheritance_model']['AR_compound'] = True
     return

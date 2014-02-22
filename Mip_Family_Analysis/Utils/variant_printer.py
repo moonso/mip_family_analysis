@@ -45,8 +45,12 @@ class VariantPrinter(multiprocessing.Process):
                 break
             else:
                 for variant_id in next_result:
-                    print_line = [next_result[variant_id].get(entry, '-') for entry in self.header]
-                    self.outfile.write('\t'.join(print_line) + '\n')
+                    try:
+                        print_line = [next_result[variant_id].get(entry, '-') for entry in self.header]
+                        self.outfile.write('\t'.join(print_line) + '\n')
+                    except TypeError as e:
+                        print(next_result[variant_id])
+                        print(e)
         return
 
 def main():

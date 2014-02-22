@@ -192,18 +192,18 @@ def main():
     
     if args.verbose:
         print('Models checked!')
-    #     print('Start sorting the variants: \n')
-    #     start_time_variant_sorting = datetime.now()
-    # 
-    # print_headers(args, head)
-    #     
-    # var_sorter = variant_sorter.FileSort(temp_file, outFile=args.outfile[0], silent=args.silent)
-    # var_sorter.sort()
+        print('Start sorting the variants: \n')
+        start_time_variant_sorting = datetime.now()
+    
+    print_headers(args, head)
+        
+    var_sorter = variant_sorter.FileSort(temp_file, outFile=args.outfile[0], silent=args.silent)
+    var_sorter.sort()
     
     os.remove(temp_file.name)
     
     if args.verbose:
-    #     print('Variants sorted!. Time to sort variants: %s \n' % str(datetime.now() - start_time_variant_sorting))
+        print('Variants sorted!. Time to sort variants: %s \n' % str(datetime.now() - start_time_variant_sorting))
         print('Total time for analysis: %s' % str(datetime.now() - start_time_analysis))
     
 
