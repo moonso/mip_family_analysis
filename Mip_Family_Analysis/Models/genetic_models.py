@@ -100,9 +100,7 @@ def check_genetic_models(variant_batch, family, verbose = False, proc_name = Non
             else:
                 variant_batch[gene][variant_id]['Inheritance_model']['X'] = False
                 variant_batch[gene][variant_id]['Inheritance_model']['X_dn'] = False
-            # Check the dominant model:
                 check_dominant(variant_batch[gene][variant_id], family)
-            # Check the recessive model:
                 check_recessive(variant_batch[gene][variant_id], family)
             
         if len(compound_candidates) > 1:
@@ -114,7 +112,7 @@ def check_genetic_models(variant_batch, family, verbose = False, proc_name = Non
                 if check_compounds(variant_batch[gene][pair[0]], variant_batch[gene][pair[0]], family):
                     variant_batch[gene][pair[0]]['Compounds'][pair[1]] = 0
                     variant_batch[gene][pair[1]]['Compounds'][pair[0]] = 0
-                    return
+    return
 
 def check_compound_candidates(variants, family):
     """Sort out the compound candidates, this function is used to reduce the number of potential candidates."""
