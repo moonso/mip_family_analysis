@@ -51,39 +51,39 @@ class VariantConsumer(multiprocessing.Process):
             # # Make shore we only have one copy of each variant:
             for feature in next_batch:
                 #Make one dictionary for each gene:
-                # variant_dict = {variant_id: variant_batch[gene][variant_id] for variant_id in variant_batch[gene]}
-                for variant_id in next_batch[feature]:
-                    #Remove the 'Genotypes' post since we will not need them for now
+                for variant_id in next_batch[feature]:                        
                     if variant_id in fixed_variants:
+                        # Add the compounds together
                         if len(next_batch[feature][variant_id]['Compounds']) > 0:
                             fixed_variants[variant_id]['Compounds'] = dict( 
                                 next_batch[feature][variant_id]['Compounds'].items() +
                                 fixed_variants[variant_id]['Compounds'].items())
-                            fixed_variants[variant_id]['Inheritance_model']['AR_compound'] = True
+                            #We do not want reference to itself as a compound:
+                            fixed_variants[variant_id]['Compounds'].pop(variant_id, 0)
                     else:
                         fixed_variants[variant_id] = next_batch[feature][variant_id]
             
+            next_batch = {} # Free memory?
             score_variants.score_variant(fixed_variants, self.family.models_of_inheritance)
             
             # Fix the compound scores and make ready for printing:
             
             for variant_id in fixed_variants:
-                fixed_variants[variant_id].pop('Genotypes', 0)
                 
+                # Remove 'Genotypes' since we don't need them anymore:
+                fixed_variants[variant_id].pop('Genotypes', 0)
                 # Set the rank score to individual rank score for now:
                 fixed_variants[variant_id]['Rank_score'] = fixed_variants[variant_id]['Individual_rank_score']
-                #We do not want reference to itself as a compound:
-                fixed_variants[variant_id]['Compounds'].pop(variant_id, 0)
+                #If there are copounds we add the compound scores to each pair
                 if len(fixed_variants[variant_id]['Compounds']) > 0:
+                    fixed_variants[variant_id]['Inheritance_model']['AR_compound'] = True
                     # Put the compound scores
-                    compounds_list = []
                     for compound_id in fixed_variants[variant_id]['Compounds']:
-                        compound_score = (int(fixed_variants[variant_id]['Individual_rank_score']) + 
-                                         int(fixed_variants[compound_id]['Individual_rank_score']))
+                        compound_score = (fixed_variants[variant_id]['Individual_rank_score'] + 
+                                             fixed_variants[compound_id]['Individual_rank_score'])
                         fixed_variants[variant_id]['Compounds'][compound_id] = compound_score
-                        compounds_list.append(compound_id + '=' + str(compound_score))
-                else:
-                    fixed_variants[variant_id]['Inheritance_model']['AR_compound'] = False
+            
+            for variant_id in fixed_variants:
                 
                 model_list = []
                 for model in fixed_variants[variant_id]['Inheritance_model']:
@@ -94,26 +94,26 @@ class VariantConsumer(multiprocessing.Process):
                     fixed_variants[variant_id]['Inheritance_model'] = 'NA'
                 else:
                     fixed_variants[variant_id]['Inheritance_model'] = ':'.join(model_list)
+                
+                compounds_list = []                
                 if 'AR_compound' in model_list:
                     if len(model_list) == 1:
-                        try:
-                            fixed_variants[variant_id]['Rank_score'] = str( 
+                        fixed_variants[variant_id]['Rank_score'] = ( 
                                 min(fixed_variants[variant_id]['Individual_rank_score'], 
-                                    max([int(value) for value in fixed_variants[variant_id]['Compounds'].values()])))
-                        except AttributeError:
-                            print(fixed_variants[variant_id]['Compounds'])
-                            
-                            fixed_variants[variant_id]['Inheritance_model'] = 'AR_compound'
+                                max([value for value in fixed_variants[variant_id]['Compounds'].values()])))
                     
+                    compounds_list = [comp_id + '=' + str(comp_value) for comp_id, comp_value in
+                                         fixed_variants[variant_id]['Compounds'].items()]
+                if len(compounds_list) > 0:
                     fixed_variants[variant_id]['Compounds'] = ':'.join(compounds_list)
                 else:
-                    fixed_variants[variant_id]['Compounds'] = '-'                
+                    fixed_variants[variant_id]['Compounds'] = '-'
+                
                 fixed_variants[variant_id]['Individual_rank_score'] = str( 
                                         fixed_variants[variant_id]['Individual_rank_score'])                        
                 fixed_variants[variant_id]['Rank_score'] = str( 
                                         fixed_variants[variant_id]['Rank_score'])                        
                           
-            # print next_batch
             self.results_queue.put(fixed_variants)
             self.task_queue.task_done()
         return

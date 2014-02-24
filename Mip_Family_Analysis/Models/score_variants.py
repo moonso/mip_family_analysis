@@ -27,11 +27,11 @@ def get_genetic_models(model_dict):
             models_followed.append(model)
     return models_followed
 
-def score_variant(variants, genetic_models = []):
+def score_variant(variants, prefered_models = []):
     """Score a variant object according to Henriks score model. Input: A variant object and a list of genetic models."""
     
-    if 'NA' in genetic_models:
-        genetic_models = []
+    if  prefered_models == ['NA']:
+        prefered_models = []
     
     for variant_id in variants:
         variant = variants[variant_id]
@@ -77,7 +77,7 @@ def score_variant(variants, genetic_models = []):
         
         
         
-        score += check_inheritance(variant_models, genetic_models)
+        score += check_inheritance(variant_models, prefered_models)
         score += check_predictions(mutation_taster, avsift, poly_phen)
         score += check_functional_annotation(functional_annotation)
         score += check_gene_annotation(gene_annotation)

@@ -45,19 +45,19 @@ def add_cmms_metadata(header_object):
 
     header_object.add_metadata('Inheritance_model', data_type='String', 
         description='Variant inheritance pattern.', 
-        dbname='Inheritance Model'
+        dbname='Inheritance Model', delimiter=','
     )
     header_object.add_metadata('Individual_rank_score', data_type='Integer', 
         description='This is the correct rank score if the variant only follows the AR_comp model.', 
-        dbname='Individual Rank Score'
+        dbname='Individual Rank Score', delimiter=','
     )
     header_object.add_metadata('Compounds', data_type='String', 
         description='This is the correct rank score if the variant only follows the AR_comp model.', 
-        dbname='Individual Rank Score'
+        dbname='Individual Rank Score', delimiter=','
     )
     header_object.add_metadata('Rank_score', data_type='Integer', 
         description='Rank score of disease casuing potential. Higher the more likely disease casuing.', 
-        dbname='Rank Score'
+        dbname='Rank Score', delimiter=','
     )
     
     header_object.add_header('Inheritance_model')

@@ -110,16 +110,14 @@ def check_genetic_models(variant_batch, family, verbose = False, proc_name = Non
             
         if len(compound_candidates) > 1:
             
-            compound_candidates = pair_generator.Pair_Generator(compound_candidates.keys())
+            compound_pairs = pair_generator.Pair_Generator(compound_candidates.keys())
             
-            for pair in compound_candidates.generate_pairs():
+            for pair in compound_pairs.generate_pairs():
                 # Add the compound pair id to each variant
                 if check_compounds(variant_batch[gene][pair[0]], variant_batch[gene][pair[0]], family):
                     variant_batch[gene][pair[0]]['Compounds'][pair[1]] = 0
                     variant_batch[gene][pair[1]]['Compounds'][pair[0]] = 0
-                    variant_batch[gene][pair[0]]['Inheritance_model']['AR_compound'] = True
-                    variant_batch[gene][pair[1]]['Inheritance_model']['AR_compound'] = True
-    return
+                    return
 
 def check_compound_candidates(variants, family):
     """Sort out the compound candidates, this function is used to reduce the number of potential candidates."""
@@ -195,10 +193,11 @@ def check_X(variant, family):
                 variant['Inheritance_model']['X_dn'] = False
                 break
         #The case where the individual is a male
-            elif individual.sex == 1:
+            if individual.sex == 1:
                 if individual_genotype.has_variant:
         # If the individual is healthy, male and have a variation it can not be x-linked.
                     variant['Inheritance_model']['X'] = False
+                    variant['Inheritance_model']['X_dn'] = False
                     break
     
         # The case when the individual is sick
@@ -284,8 +283,8 @@ def check_parents(model, individual, variant, family):
                 (mother_genotype.has_variant and father_genotype.has_variant)):
                 variant['Inheritance_model']['AR_hom_denovo'] = False
                 # If de novo is true then the it is only de novo in this case
-                if variant['Inheritance_model']['AR_hom_denovo']:
-                    variant['Inheritance_model']['AR_hom'] = False
+            if variant['Inheritance_model']['AR_hom_denovo']:
+                variant['Inheritance_model']['AR_hom'] = False
         else:   
             if (mother_genotype.homo_alt or father_genotype.homo_alt):
                 variant['Inheritance_model']['AR_hom_denovo'] = False
