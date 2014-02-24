@@ -45,19 +45,19 @@ def add_cmms_metadata(header_object):
 
     header_object.add_metadata('Inheritance_model', data_type='String', 
         description='Variant inheritance pattern.', 
-        dbname='Inheritance Model'
+        dbname='Inheritance Model', delimiter=','
     )
     header_object.add_metadata('Individual_rank_score', data_type='Integer', 
         description='This is the correct rank score if the variant only follows the AR_comp model.', 
-        dbname='Individual Rank Score'
+        dbname='Individual Rank Score', delimiter=','
     )
     header_object.add_metadata('Compounds', data_type='String', 
         description='This is the correct rank score if the variant only follows the AR_comp model.', 
-        dbname='Individual Rank Score'
+        dbname='Individual Rank Score', delimiter=','
     )
     header_object.add_metadata('Rank_score', data_type='Integer', 
         description='Rank score of disease casuing potential. Higher the more likely disease casuing.', 
-        dbname='Rank Score'
+        dbname='Rank Score', delimiter=','
     )
     
     header_object.add_header('Inheritance_model')
@@ -129,7 +129,7 @@ def main():
     
     # Print program version to std err:
     
-    print >> sys.stderr, 'Version:', pkg_resources.require("Mip_Family_Analysis")[0].version
+    sys.stderr.write('Version: %s \n' % str(pkg_resources.require("Mip_Family_Analysis")[0].version))
         
     start_time_analysis = datetime.now()
     
@@ -145,17 +145,15 @@ def main():
     # Parse the annotations file:
     
     if args.verbose:
-        print 'Parsing annotation ...'
-        print ''
+        print('Parsing annotation ...\n')
         start_time_annotation = datetime.now()
     
     annotation_trees = annotation_parser.AnnotationParser(anno_file, args.annotation_type[0])
     
     if args.verbose:
-        print 'Annotation Parsed!'
-        print 'Time to parse annotation:', datetime.now() - start_time_annotation
+        print('Annotation Parsed!')
+        print('Time to parse annotation: %s' % str(datetime.now() - start_time_annotation))
     
-        
     # The variant queue is just a queue with splitted variant lines:
     variant_queue = JoinableQueue()
     # The consumers will put their results in the results queue
@@ -164,12 +162,12 @@ def main():
     temp_file = NamedTemporaryFile(delete=False)
     
     if args.verbose:
-        print 'Temp files:' ,temp_file.name
+        print('Temp files: %s' % temp_file.name)
     
     num_model_checkers = (cpu_count()*2-1)
 
     if args.verbose:
-        print 'Number of cpus:' ,cpu_count()
+        print ('Number of cpus: %s' % str(cpu_count()))
     
     
     model_checkers = [variant_consumer.VariantConsumer(variant_queue, results, my_family, 
@@ -193,9 +191,8 @@ def main():
     var_printer.join()
     
     if args.verbose:
-        print 'Models checked!'
-        print 'Start sorting the variants:'
-        print ''
+        print('Models checked!')
+        print('Start sorting the variants: \n')
         start_time_variant_sorting = datetime.now()
     
     print_headers(args, head)
@@ -206,9 +203,8 @@ def main():
     os.remove(temp_file.name)
     
     if args.verbose:
-        print 'Variants sorted!. Time to sort variants: ', (datetime.now() - start_time_variant_sorting)
-        print ''
-        print 'Total time for analysis:' , (datetime.now() - start_time_analysis)
+        print('Variants sorted!. Time to sort variants: %s \n' % str(datetime.now() - start_time_variant_sorting))
+        print('Total time for analysis: %s' % str(datetime.now() - start_time_analysis))
     
 
 
