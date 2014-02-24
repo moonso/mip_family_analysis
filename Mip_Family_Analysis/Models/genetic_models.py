@@ -83,11 +83,8 @@ def check_genetic_models(variant_batch, family, verbose = False, proc_name = Non
         if gene != '-':
             # First remove all variants that can't be compounds to reduce the number of lookup's:
             compound_candidates = check_compound_candidates(variant_batch[gene], family)
-            if len(compound_candidates) > 100:
-                print('%s : %s' % (gene, str(len(compound_candidates))))
-        #     if len(compound_candidates) > 1:
-        # #     # Now check the compound candidates:
-        #         compound_pairs = check_compounds(compound_candidates, family)
+            # if len(compound_candidates) > 100:
+            #     print('%s : %s' % (gene, str(len(compound_candidates))))
         
         for variant_id in variant_batch[gene]:
             
