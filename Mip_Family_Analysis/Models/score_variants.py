@@ -27,8 +27,11 @@ def get_genetic_models(model_dict):
             models_followed.append(model)
     return models_followed
 
-def score_variant(variants, genetic_models = []):
+def score_variant(variants, prefered_models = []):
     """Score a variant object according to Henriks score model. Input: A variant object and a list of genetic models."""
+    
+    if  prefered_models == ['NA']:
+        prefered_models = []
     
     for variant_id in variants:
         variant = variants[variant_id]
@@ -74,7 +77,7 @@ def score_variant(variants, genetic_models = []):
         
         
         
-        score += check_inheritance(variant_models, genetic_models)
+        score += check_inheritance(variant_models, prefered_models)
         score += check_predictions(mutation_taster, avsift, poly_phen)
         score += check_functional_annotation(functional_annotation)
         score += check_gene_annotation(gene_annotation)
@@ -87,14 +90,14 @@ def score_variant(variants, genetic_models = []):
         score += check_hgmd(hgmd)
         variant['Individual_rank_score'] = score
         
-    return variants
+    return
     
-def check_inheritance(variant_models, genetic_models):
+def check_inheritance(variant_models, prefered_models):
     """Check if the models of inheritance are followed for the variant."""
     model_score = 0
     #If any of the prefered models are followed:
     for model_followed in variant_models:
-        if model_followed in genetic_models:
+        if model_followed in prefered_models:
             model_score = 3
     #Else if any model is followed
     if model_score != 3:

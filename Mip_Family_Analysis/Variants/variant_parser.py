@@ -16,16 +16,7 @@ Copyright (c) 2013 __MyCompanyName__. All rights reserved.
 import sys
 import os
 import argparse
-import shelve
 from datetime import datetime
-if sys.version_info < (2, 7):
-    from ordereddict import OrderedDict
-else:
-    from collections import OrderedDict
-    
-from pprint import pprint as pp
-
-from Mip_Family_Analysis.Variants import genetic_variant
 
 
 class VariantFileParser(object):
@@ -50,23 +41,19 @@ class VariantFileParser(object):
         current_chrom = None
         current_features = []
         nr_of_variants = 0
-        
         if self.verbosity:
-            print 'Start parsing the variants ...'
-            print ''
-        
+            print('Start parsing the variants ...\n')
         with open(self.variant_file, 'rb') as f:
             for line in f:
-                
                 if not line.startswith('#'):
-                    variant, new_features = self.cmms_variant(line.rstrip().split('\t'))
+                    variant_line = line.rstrip().split('\t')
+                    variant, new_features = self.cmms_variant(variant_line)
                     if self.verbosity:
                         nr_of_variants += 1
                         new_chrom = variant['Chromosome']
                         if nr_of_variants % 20000 == 0:
-                            print nr_of_variants, 'variants parsed!'
-                            print 'Last 20.000 took', datetime.now() - start_twenty, 'to parse.'
-                            print ''
+                            print('%s variants parsed!' % str(nr_of_variants))
+                            print('Last 20.000 took %s to parse. \n' % str(datetime.now() - start_twenty))
                             start_twenty = datetime.now()
                     # If we look at the first variant, setup boundary conditions:
                     if beginning:
@@ -80,7 +67,6 @@ class VariantFileParser(object):
                         send = True
                     
                     # Check if we are in a space between features:
-                        # print current_features, new_features
                         if len(new_features) == 0:
                             if len(current_features) == 0:
                                 send = False
@@ -100,19 +86,16 @@ class VariantFileParser(object):
                     
                     if self.verbosity:
                         if new_chrom != current_chrom:
-                            print 'Chromosome', current_chrom, 'parsed!'
-                            print 'Time to parse chromosome', datetime.now()-start_chrom
+                            print('Chromosome %s parsed!' % current_chrom)
+                            print('Time to parse chromosome %s' % str(datetime.now()-start_chrom))
                             current_chrom = new_chrom
                             start_chrom = datetime.now()
                         
         if self.verbosity:
-            print 'Chromosome', current_chrom, 'parsed!'
-            print 'Time to parse chromosome', datetime.now()-start_chrom
-            print ''
-            print 'Variants done!. Time to parse variants: ', (datetime.now() - start_parsing)
-            print ''
+            print('Chromosome %s parsed!' % current_chrom)
+            print('Time to parse chromosome %s \n' % str(datetime.now()-start_chrom))
+            print('Variants done!. Time to parse variants: %s \n' % str(datetime.now() - start_parsing))
         self.batch_queue.put(batch)
-        
         return
     
     def add_variant(self, batch, variant, features):
@@ -135,7 +118,7 @@ class VariantFileParser(object):
     def cmms_variant(self, splitted_variant_line):
         """Returns a variant object in the cmms format."""
         
-        my_variant = OrderedDict(zip(self.header_line, splitted_variant_line))
+        my_variant = dict(zip(self.header_line, splitted_variant_line))
         variant_chrom = my_variant['Chromosome']
         if variant_chrom.startswith('chr') or variant_chrom.startswith('Chr'):
             variant_chrom = variant_chrom[3:]
@@ -146,7 +129,7 @@ class VariantFileParser(object):
             features_overlapped = self.interval_trees.interval_trees[variant_chrom].findRange(variant_interval)
         except KeyError:
             if self.verbosity:
-                print 'Chromosome', variant_chrom, 'is not in annotation file!'
+                print(('Chromosome', variant_chrom, 'is not in annotation file!'))
         
         return my_variant, features_overlapped
     
@@ -155,19 +138,28 @@ class VariantFileParser(object):
 def main():
     from multiprocessing import JoinableQueue
     from Mip_Family_Analysis.Utils import header_parser
+    from Mip_Family_Analysis.Utils import annotation_parser
     parser = argparse.ArgumentParser(description="Parse different kind of pedigree files.")
     parser.add_argument('variant_file', type=str, nargs=1 , help='A file with variant information.')
+    parser.add_argument('-ann', '--annotation', nargs=1 , help='A file with annotations.')    
     parser.add_argument('-v', '--verbose', action="store_true", help='Increase output verbosity.')
-    
     args = parser.parse_args()
+    
     infile = args.variant_file[0]
+    
+    annotation_trees = {}
+    if args.annotation:
+        print('Parsing annotation:')
+        annotation_trees = annotation_parser.AnnotationParser(args.annotation[0], 'ref_gene')
+        print('Annotation parsed.')
+        
     head = header_parser.HeaderParser(infile)
     file_type = 'cmms'
     variant_queue = JoinableQueue()
     start_time = datetime.now()
-    my_parser = VariantFileParser(infile, variant_queue, head, args.verbose)
-
-    print 'Time to parse variants:', datetime.now()-start_time
+    my_parser = VariantFileParser(infile, variant_queue, head, annotation_trees, args.verbose)
+    my_parser.parse()
+    print(('Time to parse variants: %s' % (datetime.now()-start_time)))
 
 if __name__ == '__main__':
     main()
