@@ -60,23 +60,23 @@ class VariantConsumer(multiprocessing.Process):
                                 fixed_variants[variant_id]['Compounds'].items())
                             #We do not want reference to itself as a compound:
                             fixed_variants[variant_id]['Compounds'].pop(variant_id, 0)
+                            
                     else:
                         fixed_variants[variant_id] = next_batch[feature][variant_id]
-            
             next_batch = {} # Free memory?
             score_variants.score_variant(fixed_variants, self.family.models_of_inheritance)
             
             # Fix the compound scores and make ready for printing:
             
             for variant_id in fixed_variants:
-                
                 # Remove 'Genotypes' since we don't need them anymore:
                 fixed_variants[variant_id].pop('Genotypes', 0)
                 # Set the rank score to individual rank score for now:
                 fixed_variants[variant_id]['Rank_score'] = fixed_variants[variant_id]['Individual_rank_score']
+                # if fixed_variants[variant_id]['Inheritance_model']['AR_compound'] and len(fixed_variants[variant_id]['Compounds']):
+                #     print('disaster')
                 #If there are copounds we add the compound scores to each pair
                 if len(fixed_variants[variant_id]['Compounds']) > 0:
-                    fixed_variants[variant_id]['Inheritance_model']['AR_compound'] = True
                     # Put the compound scores
                     for compound_id in fixed_variants[variant_id]['Compounds']:
                         compound_score = (fixed_variants[variant_id]['Individual_rank_score'] + 
@@ -97,10 +97,10 @@ class VariantConsumer(multiprocessing.Process):
                 
                 compounds_list = []                
                 if 'AR_compound' in model_list:
+                    # print('AR_compound %s' % str(fixed_variants[variant_id]['Compounds']))
                     if len(model_list) == 1:
-                        fixed_variants[variant_id]['Rank_score'] = ( 
-                                min(fixed_variants[variant_id]['Individual_rank_score'], 
-                                max([value for value in fixed_variants[variant_id]['Compounds'].values()])))
+                        fixed_variants[variant_id]['Rank_score'] = min(fixed_variants[variant_id]['Individual_rank_score'], 
+                                max([value for value in fixed_variants[variant_id]['Compounds'].values()]))
                     
                     compounds_list = [comp_id + '=' + str(comp_value) for comp_id, comp_value in
                                          fixed_variants[variant_id]['Compounds'].items()]
