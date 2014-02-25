@@ -88,7 +88,6 @@ def check_genetic_models(variant_batch, family, verbose = False, proc_name = Non
         
         for variant_id in variant_batch[gene]:
             
-            variant_batch[gene][variant_id]['Compounds'] = {}
             # Only check X-linked for the variants in the X-chromosome:
             # For X-linked we do not need to check the other models
             if variant_batch[gene][variant_id]['Chromosome'] == 'X':
@@ -109,9 +108,11 @@ def check_genetic_models(variant_batch, family, verbose = False, proc_name = Non
             
             for pair in compound_pairs.generate_pairs():
                 # Add the compound pair id to each variant
-                if check_compounds(variant_batch[gene][pair[0]], variant_batch[gene][pair[0]], family):
+                if check_compounds(variant_batch[gene][pair[0]], variant_batch[gene][pair[1]], family):
                     variant_batch[gene][pair[0]]['Compounds'][pair[1]] = 0
                     variant_batch[gene][pair[1]]['Compounds'][pair[0]] = 0
+                    variant_batch[gene][pair[0]]['Inheritance_model']['AR_compound'] = True
+                    variant_batch[gene][pair[1]]['Inheritance_model']['AR_compound'] = True
     return
 
 def check_compound_candidates(variants, family):
