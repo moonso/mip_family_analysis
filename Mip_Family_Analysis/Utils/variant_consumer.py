@@ -99,12 +99,8 @@ class VariantConsumer(multiprocessing.Process):
                 if 'AR_compound' in model_list:
                     # print('AR_compound %s' % str(fixed_variants[variant_id]['Compounds']))
                     if len(model_list) == 1:
-                        try:
-                            fixed_variants[variant_id]['Rank_score'] = ( 
-                                min(fixed_variants[variant_id]['Individual_rank_score'], 
-                                max([value for value in fixed_variants[variant_id]['Compounds'].values()])))
-                        except ValueError:
-                            pass
+                        fixed_variants[variant_id]['Rank_score'] = min(fixed_variants[variant_id]['Individual_rank_score'], 
+                                max([value for value in fixed_variants[variant_id]['Compounds'].values()]))
                     
                     compounds_list = [comp_id + '=' + str(comp_value) for comp_id, comp_value in
                                          fixed_variants[variant_id]['Compounds'].items()]
