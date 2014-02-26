@@ -45,19 +45,19 @@ def add_cmms_metadata(header_object):
 
     header_object.add_metadata('Inheritance_model', data_type='String', 
         description='Variant inheritance pattern.', 
-        dbname='Inheritance Model', delimiter=','
+        dbname='Inheritance Model', delimiter='\t'
     )
     header_object.add_metadata('Individual_rank_score', data_type='Integer', 
         description='This is the correct rank score if the variant only follows the AR_comp model.', 
-        dbname='Individual Rank Score', delimiter=','
+        dbname='Individual Rank Score', delimiter='\t'
     )
     header_object.add_metadata('Compounds', data_type='String', 
         description='This is the correct rank score if the variant only follows the AR_comp model.', 
-        dbname='Individual Rank Score', delimiter=','
+        dbname='Individual Rank Score', delimiter='\t'
     )
     header_object.add_metadata('Rank_score', data_type='Integer', 
         description='Rank score of disease casuing potential. Higher the more likely disease casuing.', 
-        dbname='Rank Score', delimiter=','
+        dbname='Rank Score', delimiter='\t'
     )
     
     header_object.add_header('Inheritance_model')
@@ -76,6 +76,16 @@ def print_headers(args, header_object):
     elif not args.silent:
         for line in lines_to_print:
             print line
+    return
+
+def check_individuals(family, head, args):
+    """Check if the individuals from pedfile is present in varfile"""
+    for individual in family.individuals.keys():
+        if individual not in head.individuals:
+            family.individuals.pop(individual, 0)
+            if args.verbose:
+                print('Warning! Individual %s is in .ped file but not in variant file! Removing individual from analysis.' 
+                        % individual)
     return
 
 def main():
@@ -139,7 +149,9 @@ def main():
     
     # Take care of the headers from the variant file:
     head = get_header(var_file)
-        
+    
+    check_individuals(my_family, head, args)
+    
     add_cmms_metadata(head)
     
     # Parse the annotations file:
