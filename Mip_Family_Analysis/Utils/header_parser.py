@@ -58,7 +58,7 @@ class HeaderParser(object):
         
     def add_metadata(self, column_name, data_type=None, version=None, description=None, dbname=None, delimiter='\t'):
         """Add metadata info to the header."""
-        data_line = '##COLUMNAME='+'"'+ column_name +'"'
+        data_line = '##COLUMNNAME='+'"'+ column_name +'"'
         if column_name not in self.metadata:
             if data_type:
                 if data_type not in ['Float', 'String', 'Integer']:
