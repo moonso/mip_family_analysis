@@ -28,7 +28,11 @@ from Mip_Family_Analysis.Utils import variant_consumer, variant_sorter, header_p
 
 def get_family(args):
     """Return the family"""
-    family_type = 'cmms'
+    
+    family_type = 'mip'
+    if args.cmms:
+        family_type = 'cmms'
+    
     family_file = args.family_file[0]
     
     my_family_parser = parser.FamilyParser(family_file, family_type)
@@ -117,6 +121,10 @@ def main():
     parser.add_argument('-v', '--verbose', 
         action="store_true", 
         help='Increase output verbosity.'
+    )
+    parser.add_argument('-cmms', '--cmms', 
+        action="store_true", 
+        help='If run with cmms specific structure.'
     )
     parser.add_argument('-s', '--silent', 
         action="store_true", 
