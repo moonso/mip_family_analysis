@@ -14,14 +14,16 @@ import os
 import argparse
 import shelve
 from multiprocessing import Manager, JoinableQueue, cpu_count, Lock
+from codecs import open
+
 from tempfile import NamedTemporaryFile
 
 from datetime import datetime
 import pkg_resources
-
 from pprint import pprint as pp
 
 from ped_parser import parser
+
 from Mip_Family_Analysis.Variants import variant_parser
 from Mip_Family_Analysis.Models import genetic_models, score_variants
 from Mip_Family_Analysis.Utils import variant_consumer, variant_sorter, header_parser, variant_printer, annotation_parser
@@ -30,6 +32,7 @@ def get_family(args):
     """Return the family"""
     
     family_type = 'mip'
+    
     if args.cmms:
         family_type = 'cmms'
     
@@ -74,7 +77,7 @@ def print_headers(args, header_object):
     """Print the headers to a results file."""
     lines_to_print = header_object.get_headers_for_print()
     if args.outfile[0]:
-        with open(args.outfile[0], 'w') as f: 
+        with open(args.outfile[0], 'w', encoding='utf-8') as f: 
             for line in lines_to_print:
                 f.write(line + '\n')
     elif not args.silent:
@@ -175,7 +178,7 @@ def main():
         print('Time to parse annotation: %s' % str(datetime.now() - start_time_annotation))
     
     # The variant queue is just a queue with splitted variant lines:
-    variant_queue = JoinableQueue()
+    variant_queue = JoinableQueue(maxsize=1000)
     # The consumers will put their results in the results queue
     results = Manager().Queue()
     # Create a temporary file for the variants:
@@ -189,9 +192,8 @@ def main():
     if args.verbose:
         print ('Number of cpus: %s' % str(cpu_count()))
     
-    
-    model_checkers = [variant_consumer.VariantConsumer(variant_queue, results, my_family, 
-                     args.verbose) for i in xrange(num_model_checkers)]
+    model_checkers = [variant_consumer.VariantConsumer(variant_queue, results, my_family, args.verbose) 
+                        for i in xrange(num_model_checkers)]
     
     for w in model_checkers:
         w.start()
