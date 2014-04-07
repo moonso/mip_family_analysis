@@ -57,8 +57,10 @@ class VariantConsumer(multiprocessing.Process):
             if len(variant_dict[variant_id]['Compounds']) > 0:
                 # Put the compound scores
                 for compound_id in variant_dict[variant_id]['Compounds']:
-                    compounds_list.append(compound_id+'='+str(int(variant_dict[variant_id]['Individual_rank_score']) + 
-                                         int(variant_dict[compound_id]['Individual_rank_score'])))  
+                    compound_score = (int(variant_dict[variant_id]['Individual_rank_score']) + 
+                                         int(variant_dict[compound_id]['Individual_rank_score']))
+                    variant_dict[variant_id]['Compounds'][compound_id] = compound_score
+                    compounds_list.append(compound_id+'='+str(compound_score))  
             
             for model in variant_dict[variant_id]['Inheritance_model']:
                 if variant_dict[variant_id]['Inheritance_model'][model]:
