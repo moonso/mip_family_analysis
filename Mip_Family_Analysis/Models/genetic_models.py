@@ -78,8 +78,9 @@ def check_genetic_models(variant_batch, family, verbose = False, proc_name = Non
             variant_batch[gene][variant_id]['Genotypes'] = genotypes
             variant_batch[gene][variant_id]['Compounds'] = {}
             # Add information of models followed:
-            variant_batch[gene][variant_id]['Inheritance_model'] = {'X' : True, 'X_dn' : True,
-            'AD' : True, 'AD_denovo' : True, 'AR_hom' : True, 'AR_hom_denovo' : True, 'AR_compound' : False}
+            variant_batch[gene][variant_id]['Inheritance_model'] = {'XR': True, 'XR_dn': True, 
+                'XD': True, 'XD_dn': True, 'AD': True, 'AD_dn': True, 'AR_hom': True, 
+                'AR_hom_dn': True, 'AR_comp': False, 'AR_comp_dn': False}
     # Now check the genetic models:
     for gene in variant_batch:
         compound_candidates = []
@@ -88,22 +89,23 @@ def check_genetic_models(variant_batch, family, verbose = False, proc_name = Non
         if gene != '-':
             # First remove all variants that can't be compounds to reduce the number of lookup's:
             compound_candidates = check_compound_candidates(variant_batch[gene], family)
-            # if len(compound_candidates) > 100:
-            #     print('%s : %s' % (gene, str(len(compound_candidates))))
         
         for variant_id in variant_batch[gene]:
             
             # Only check X-linked for the variants in the X-chromosome:
             # For X-linked we do not need to check the other models
             if variant_batch[gene][variant_id]['Chromosome'] == 'X':
-                check_X(variant_batch[gene][variant_id], family)
+                check_X_recessive(variant_batch[gene][variant_id], family)
+                check_X_dominant(variant_batch[gene][variant_id], family)
                 variant_batch[gene][variant_id]['Inheritance_model']['AD'] = False
-                variant_batch[gene][variant_id]['Inheritance_model']['AD_denovo'] = False
+                variant_batch[gene][variant_id]['Inheritance_model']['AD_dn'] = False
                 variant_batch[gene][variant_id]['Inheritance_model']['AR_hom'] = False
-                variant_batch[gene][variant_id]['Inheritance_model']['AR_hom_denovo'] = False
+                variant_batch[gene][variant_id]['Inheritance_model']['AR_hom_dn'] = False
             else:
-                variant_batch[gene][variant_id]['Inheritance_model']['X'] = False
-                variant_batch[gene][variant_id]['Inheritance_model']['X_dn'] = False
+                variant_batch[gene][variant_id]['Inheritance_model']['XR'] = False
+                variant_batch[gene][variant_id]['Inheritance_model']['XR_dn'] = False
+                variant_batch[gene][variant_id]['Inheritance_model']['XD'] = False
+                variant_batch[gene][variant_id]['Inheritance_model']['XD_dn'] = False
                 check_dominant(variant_batch[gene][variant_id], family)
                 check_recessive(variant_batch[gene][variant_id], family)
             
@@ -116,8 +118,9 @@ def check_genetic_models(variant_batch, family, verbose = False, proc_name = Non
                 if check_compounds(variant_batch[gene][pair[0]], variant_batch[gene][pair[1]], family):
                     variant_batch[gene][pair[0]]['Compounds'][pair[1]] = 0
                     variant_batch[gene][pair[1]]['Compounds'][pair[0]] = 0
-                    variant_batch[gene][pair[0]]['Inheritance_model']['AR_compound'] = True
-                    variant_batch[gene][pair[1]]['Inheritance_model']['AR_compound'] = True
+                    variant_batch[gene][pair[0]]['Inheritance_model']['AR_comp'] = True
+                    variant_batch[gene][pair[1]]['Inheritance_model']['AR_comp'] = True
+                    # check_parents_compound(variant_batch[gene]pair[0], variant_batch[gene]pair[1], family)
     return
 
 def check_compound_candidates(variants, family):
@@ -150,6 +153,10 @@ def check_compound_candidates(variants, family):
                 comp_candidates = {}
     return comp_candidates
 
+# def check_parents_compound(variant_1, variant_2, family):
+#     """Check if the compound is de novo in this family."""
+#     pass
+
 def check_compounds(variant_1, variant_2, family):
     """Check which variants in the list that follow the compound heterozygous model. At this stage we\
         know that none of the individuals are homozygote alternative for the variants."""
@@ -159,7 +166,7 @@ def check_compounds(variant_1, variant_2, family):
         genotype_1 = variant_1['Genotypes'].get(individual, genotype.Genotype())
         genotype_2 = variant_2['Genotypes'].get(individual, genotype.Genotype())
         # If the individual is not sick and have both variants it can not be compound
-        if family.individuals[individual].phenotype != 2:
+        if family.individuals[individual].phenotype == 1:
             if genotype_1.has_variant and genotype_2.has_variant:
                 return False
         else:# The case where the individual is affected
@@ -178,40 +185,11 @@ def check_compounds(variant_1, variant_2, family):
                 if ((mother_genotype_1.heterozygote and mother_genotype_2.heterozygote and mother_phenotype == 1) or 
                         (father_genotype_1.heterozygote and father_genotype_2.heterozygote and father_phenotype == 1)):
                     return False
+                #TODO check AR_comp_dn here
+                # if mother_phenotype == 1:
+                #     if mother_genotype_1.heterozygote and mother_genotype_2.heterozygote:
+                    
     return True
-
-def check_X(variant, family):
-    """Check if the variant follows the x linked patter of inheritance in this family."""
-    for individual in family.individuals:
-        # Get the genotype for this variant for this individual
-        individual_genotype = variant['Genotypes'].get(individual, genotype.Genotype())
-    
-        # The case where the individual is healthy
-        if family.individuals[individual].phenotype == 1:
-        # If individual is healthy the variant can not be deleterious:
-            if individual_genotype.homo_alt:
-                variant['Inheritance_model']['X'] = False
-                variant['Inheritance_model']['X_dn'] = False
-                break
-        #The case where the individual is a male
-            if family.individuals[individual].sex == 1:
-                if individual_genotype.has_variant:
-        # If the individual is healthy, male and have a variation it can not be x-linked.
-                    variant['Inheritance_model']['X'] = False
-                    variant['Inheritance_model']['X_dn'] = False
-                    break
-    
-        # The case when the individual is sick
-        elif family.individuals[individual].phenotype == 2:
-        #If the individual is sick and homozygote ref it can not be x-linked
-            if individual_genotype.homo_ref:
-                variant['Inheritance_model']['X'] = False
-                variant['Inheritance_model']['X_dn'] = False
-                break
-            elif individual_genotype.has_variant:
-                if family.individuals[individual].has_parents:
-                    check_parents('X', individual, variant, family)
-    return
 
 def check_dominant(variant, family):
     """Check if the variant follows the dominant pattern in this family."""
@@ -222,19 +200,18 @@ def check_dominant(variant, family):
             if individual_genotype.has_variant:
                 # If the individual is healthy and have a variation on one or both alleles it can not be dominant.
                 variant['Inheritance_model']['AD'] = False
-                variant['Inheritance_model']['AD_denovo'] = False
+                variant['Inheritance_model']['AD_dn'] = False
                 break
         elif family.individuals[individual].phenotype == 2:
             # The case when the individual is sick
-            if individual_genotype.homo_ref:
+            if not individual_genotype.heterozygote:
+            # Individual has to be heterozygote i AD can be true
                 variant['Inheritance_model']['AD'] = False
-                variant['Inheritance_model']['AD_denovo'] = False
+                variant['Inheritance_model']['AD_dn'] = False
                 break
-            else: 
             # Now the ind is sick and have a variant ≠ ref, check parents for de novo
-                if family.individuals[individual].has_parents:
-                    check_parents('dominant', individual, variant, family)
-            # Else if phenotype is unknown we can not say anything about the model
+            elif family.individuals[individual].has_parents:
+                check_parents('dominant', individual, variant, family)
 
 def check_recessive(variant, family):
     """Check if the variant follows the autosomal recessive pattern in this family."""
@@ -245,21 +222,91 @@ def check_recessive(variant, family):
         # If the individual is healthy and homozygote alt the model is broken.
             if individual_genotype.homo_alt:
                 variant['Inheritance_model']['AR_hom'] = False
-                variant['Inheritance_model']['AR_hom_denovo'] = False
-                break
+                variant['Inheritance_model']['AR_hom_dn'] = False
+                return
         # The case when the individual is sick:
         elif family.individuals[individual].phenotype == 2:
-        # In the case of a sick individual it must be homozygote alternative for compound heterozygote to be true.
+        # In the case of a sick individual it must be homozygote alternative for Autosomal recessive to be true.
         # Also, we can not exclude the model if no call.
-            if individual_genotype.homo_ref or individual_genotype.heterozygote:
+            if not individual_genotype.homo_alt:
                 variant['Inheritance_model']['AR_hom'] = False
-                variant['Inheritance_model']['AR_hom_denovo'] = False
-                break
-            else:
+                variant['Inheritance_model']['AR_hom_dn'] = False
+                return
             #Models are followed but we need to check the parents to see if de novo is followed or not.
+            elif family.individuals[individual].has_parents:
+                check_parents('recessive', individual, variant, family)
+    return
+
+def check_X_recessive(variant, family):
+    """Check if the variant follows the x linked heterozygous pattern of inheritance in this family."""
+    for individual in family.individuals:
+        # Get the genotype for this variant for this individual
+        individual_genotype = variant['Genotypes'].get(individual, genotype.Genotype())
+        
+        # The case where the individual is healthy
+        if not family.individuals[individual].affected():
+        # If individual is healthy and homozygote alternative the variant can not be deleterious:
+            if individual_genotype.homo_alt:
+                variant['Inheritance_model']['XR'] = False
+                variant['Inheritance_model']['XR_dn'] = False
+                return
+        #The case where the individual is a male
+            if family.individuals[individual].sex == 1:
+                if individual_genotype.has_variant:
+        # If the individual is healthy, male and have a variation it can not be x-linked-recessive.
+                    variant['Inheritance_model']['XR'] = False
+                    variant['Inheritance_model']['XR_dn'] = False
+                    return
+    
+        # The case when the individual is sick
+        elif family.individuals[individual].affected():
+        #If the individual is sick and homozygote ref it can not be x-recessive
+            if individual_genotype.homo_ref:
+                variant['Inheritance_model']['XR'] = False
+                variant['Inheritance_model']['XR_dn'] = False
+                return
+        # Women have to be hom alt to be sick (almost allways carriers)
+            elif family.individuals[individual].sex == 2:
+                if not individual_genotype.homo_alt:
+                    variant['Inheritance_model']['XR'] = False
+                    variant['Inheritance_model']['XR_dn'] = False
+                    return
+            elif individual_genotype.has_variant:
                 if family.individuals[individual].has_parents:
-                    check_parents('recessive', individual, variant, family)
-                
+                    check_parents('X_recessive', individual, variant, family)
+    return
+
+def check_X_dominant(variant, family):
+    """Check if the variant follows the x linked dominant pattern of inheritance in this family."""
+    for individual in family.individuals:
+        # Get the genotype for this variant for this individual
+        individual_genotype = variant['Genotypes'].get(individual, genotype.Genotype())
+        # The case where the individual is healthy
+        if not family.individuals[individual].affected():
+        # Womans can be carriers but not homozygote:
+            if family.individuals[individual].sex == 2:
+                if individual_genotype.homo_alt:
+                    variant['Inheritance_model']['XD'] = False
+                    variant['Inheritance_model']['XD_dn'] = False
+                    break
+        # Males can not carry the variant:
+            elif family.individuals[individual].sex == 1:
+                if individual_genotype.has_variant:
+                    variant['Inheritance_model']['XD'] = False
+                    variant['Inheritance_model']['XD_dn'] = False
+                    break
+        # The case when the individual is sick
+        elif family.individuals[individual].affected():
+        #If the individual is sick and homozygote ref it can not be x-linked-dominant
+            if individual_genotype.homo_ref:
+                variant['Inheritance_model']['XD'] = False
+                variant['Inheritance_model']['XD_dn'] = False
+                break
+            elif individual_genotype.has_variant:
+                if family.individuals[individual].has_parents:
+                    check_parents('X_dominant', individual, variant, family)
+    return
+
 def check_parents(model, individual, variant, family):
     """Check if information in the parents can tell us if model is de novo or not. Model in ['recessive', 'compound', 'dominant']."""
     sex = family.individuals[individual].sex
@@ -275,54 +322,51 @@ def check_parents(model, individual, variant, family):
 
 
     if model == 'recessive':
-        # If any of the parents doesent exist de novo will be true as the model is specified
-        # If any of the parents doesent exist AR_hom will also be true(since 10/2-2014)
-        if mother_id != '0' and father_id != '0':
-        # If both parents exists and both parents have the variant or if one of the (sick) parents
-        # are homozygote alternative, the de novo model is NOT followed, otherwise de novo is true.
-            if ((mother_genotype.homo_alt or father_genotype.homo_alt) or 
+        # If a parnent is homozygote or if both parents are heterozygote the variant is not denovo
+        if ((mother_genotype.homo_alt or father_genotype.homo_alt) or
                 (mother_genotype.has_variant and father_genotype.has_variant)):
-                variant['Inheritance_model']['AR_hom_denovo'] = False
-                return
-            # If both parents are called but none of the above is fullfilled it is denovo
-            elif not (mother_genotype.nocall or father_genotype.nocall):
+            variant['Inheritance_model']['AR_hom_dn'] = False
+        # If both parents are called but none of the above is fullfilled it is denovo
+        elif mother_genotype.genotyped and father_genotype.genotyped:
                 variant['Inheritance_model']['AR_hom'] = False
-                
-        else:
-        #If one of the parents is missing it is not denovo only if a parents is homozygote alternative
-            if (mother_genotype.homo_alt or father_genotype.homo_alt):
-                variant['Inheritance_model']['AR_hom_denovo'] = False
-                return
                     
     elif model == 'dominant':
-        # If none of the parents are affected and pattern is followed we have to have a de novo mutation.
-        if not (mother_phenotype == 2 or father_phenotype == 2):
+        # If one or both parents are affected it is de novo if none of them have a variant
+        if mother_genotype.has_variant or father_genotype.has_variant:
+            variant['Inheritance_model']['AD_dn'] = False
+        # If both parents are called but none of them carry the variant it is denovo
+        elif mother_genotype.genotyped and father_genotype.genotyped:
             variant['Inheritance_model']['AD'] = False
-            return
-        # Else if one or both parents are affected it is de novo if none of them have a variant
-        elif mother_genotype.has_variant or father_genotype.has_variant:
-            variant['Inheritance_model']['AD_denovo'] = False
-            return
             
-    elif model == 'X':
-        #If the individual is a male:
+    elif model == 'X_recessive':
+        #If the individual is a male we only need if the mother carry the variant:
         if sex == 1:
-        #If any of the parents have the variant it is not dn
-            if mother_genotype.has_variant or father_genotype.has_variant:
-                variant['Inheritance_model']['X_dn'] = False
-        #If female 
+            if mother_genotype.has_variant:
+                variant['Inheritance_model']['XR_dn'] = False
+            elif mother_genotype.genotyped:
+                variant['Inheritance_model']['XR'] = False
+        #If female, both parents must have the variant otherwise denovo is true
         elif sex == 2:
-            #If 
-            if individual_genotype.homo_alt:
-                if ((mother_genotype.homo_alt or father_genotype.homo_alt) 
-                    or (mother_genotype.has_variant and father_genotype.has_variant)):
-                    variant['Inheritance_model']['X_dn'] = False
-            elif individual_genotype.heterozygote:
-                if mother_genotype.has_variant or father_genotype.has_variant:
-                    variant['Inheritance_model']['X_dn'] = False
-        if variant['Inheritance_model']['X_dn']:
-            variant['Inheritance_model']['X'] = False          
+            if (mother_genotype.has_variant and father_genotype.has_variant):
+                variant['Inheritance_model']['XR_dn'] = False
+        #If both parents are genotyped but they both are not carriers XR is not true
+            elif mother_genotype.genotyped and father_genotype.genotyped:
+                variant['Inheritance_model']['XR'] = False
     
+    elif model == 'X_dominant':
+        #If the individual is a male we only need to look at the mother:
+        if sex == 1:
+            if mother_genotype.has_variant:
+                variant['Inheritance_model']['XD_dn'] = False
+            elif mother_genotype.genotyped:
+                variant['Inheritance_model']['XD'] = False
+        #If female, one of the parents must have the variant otherwise denovo is true
+        elif sex == 2:
+            if (mother_genotype.has_variant or father_genotype.has_variant):
+                variant['Inheritance_model']['XD_dn'] = False
+            elif mother_genotype.genotyped and father_genotype.genotyped:
+                variant['Inheritance_model']['XD'] = False
+
 
 def main():
     pass
