@@ -71,7 +71,7 @@ class Genotype(object):
                 self.phred_likelihoods.append(int(score))
         
         # These are the different genotypes:
-        self.nocall = True
+        self.genotyped = False
         self.heterozygote = False
         self.homo_alt = False
         self.homo_ref = False
@@ -85,7 +85,7 @@ class Genotype(object):
             self.allele_2 = self.genotype[-1]
         self.genotype = self.allele_1 +'/'+ self.allele_2 # The genotype should allways be represented on the same form
         if self.genotype != './.':
-            self.nocall = False
+            self.genotyped = True
             self.check_alleles(self.allele_1, self.allele_2)
             self.check_alleles(self.allele_2, self.allele_1)
         if self.heterozygote or self.homo_alt:
