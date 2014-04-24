@@ -26,7 +26,7 @@ from ped_parser import parser
 
 from Mip_Family_Analysis.Variants import variant_parser
 from Mip_Family_Analysis.Models import genetic_models, score_variants
-from Mip_Family_Analysis.Utils import variant_consumer, variant_sorter, header_parser, variant_printer, annotation_parser
+from Mip_Family_Analysis.Utils import variant_consumer, variant_sorter, header_parser, variant_printer
 
 def get_family(args):
     """Return the family"""
@@ -106,14 +106,6 @@ def main():
         type=str, nargs=1, 
         help='A variant file.Default is vcf format'
     )
-    parser.add_argument('annotation_file', 
-        type=str, nargs=1, 
-        help='A annotations file. Default is ref_gene format.'
-    )
-    parser.add_argument('-at', '--annotation_type',  
-        type=str, nargs=1, choices=['bed', 'ccds', 'gtf', 'ref_gene'],
-        default=['ref_gene'], help='Specify the format of the annotation file. Default: "ref_gene"'
-    )    
     parser.add_argument('-o', '--outfile', 
         type=str, nargs=1, default=[None], 
         help='Specify the path to output, if no file specified the output will be printed to screen.'
@@ -146,7 +138,6 @@ def main():
     
     var_file = args.variant_file[0]
     file_name, file_extension = os.path.splitext(var_file)
-    anno_file = args.annotation_file[0]
     
     # Print program version to std err:
     
@@ -164,18 +155,6 @@ def main():
     check_individuals(my_family, head, args)
     
     add_cmms_metadata(head)
-    
-    # Parse the annotations file:
-    
-    if args.verbose:
-        print('Parsing annotation ...\n')
-        start_time_annotation = datetime.now()
-    
-    annotation_trees = annotation_parser.AnnotationParser(anno_file, args.annotation_type[0])
-    
-    if args.verbose:
-        print('Annotation Parsed!')
-        print('Time to parse annotation: %s' % str(datetime.now() - start_time_annotation))
     
     # The variant queue is just a queue with splitted variant lines:
     variant_queue = JoinableQueue(maxsize=1000)
@@ -202,7 +181,7 @@ def main():
     var_printer.start()
     
         
-    var_parser = variant_parser.VariantFileParser(var_file, variant_queue, head, annotation_trees, args.verbose)
+    var_parser = variant_parser.VariantFileParser(var_file, variant_queue, head, args.verbose)
     var_parser.parse()            
     
     for i in xrange(num_model_checkers):
@@ -218,7 +197,7 @@ def main():
         start_time_variant_sorting = datetime.now()
     
     print_headers(args, head)
-        
+    
     var_sorter = variant_sorter.FileSort(temp_file, outFile=args.outfile[0], silent=args.silent)
     var_sorter.sort()
     

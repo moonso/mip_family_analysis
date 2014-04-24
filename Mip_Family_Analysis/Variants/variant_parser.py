@@ -16,17 +16,20 @@ Copyright (c) 2013 __MyCompanyName__. All rights reserved.
 import sys
 import os
 import argparse
+import re
+
+from pprint import pprint as pp
 from datetime import datetime
 
+from Mip_Family_Analysis.Variants import genotype
 
 class VariantFileParser(object):
     """docstring for VariantParser"""
-    def __init__(self, variant_file, batch_queue, head, interval_trees, verbosity = False):
+    def __init__(self, variant_file, batch_queue, head, verbosity = False):
         super(VariantFileParser, self).__init__()
         self.variant_file = variant_file
         self.batch_queue = batch_queue
         self.verbosity = verbosity
-        self.interval_trees = interval_trees
         self.individuals = head.individuals
         self.header_line = head.header
     
@@ -47,7 +50,7 @@ class VariantFileParser(object):
             for line in f:
                 if not line.startswith('#'):
                     variant_line = line.rstrip().split('\t')
-                    variant, new_features = self.cmms_variant(variant_line)
+                    variant, new_features = self.cmms_variant(variant_line, self.individuals)
                     if self.verbosity:
                         nr_of_variants += 1
                         new_chrom = variant['Chromosome']
@@ -96,6 +99,7 @@ class VariantFileParser(object):
             print('Time to parse chromosome %s \n' % str(datetime.now()-start_chrom))
             print('Variants done!. Time to parse variants: %s \n' % str(datetime.now() - start_parsing))
         self.batch_queue.put(batch)
+        
         return
     
     def add_variant(self, batch, variant, features):
@@ -114,24 +118,43 @@ class VariantFileParser(object):
                 batch[feature] = {variant_id:variant}
         return batch
     
+    def get_genes(self, annotation_string, annotation_type = 'HGNC'):
+        """Parse the annotation and return a list of genes that the variant belongs to. annotation_type in [HGNC, ENSEMBL]"""
+        genes = []
+        if annotation_type == 'ENSEMBL':
+            return annotation_string.split(';')
+        elif annotation_type == 'HGNC':
+            if 'dist' in annotation_string:
+                return genes
+            hgnc_genes = {}
+            for gene_string in annotation_string.split(';'):
+                new_gene_string = re.sub('\(.*\)','', gene_string)
+                for gene in new_gene_string.split(','):
+                    hgnc_genes[gene] = ''
+                return list(hgnc_genes.keys())
+        return genes
     
-    def cmms_variant(self, splitted_variant_line):
+    def cmms_variant(self, splitted_variant_line, individuals):
         """Returns a variant object in the cmms format."""
         
-        my_variant = dict(zip(self.header_line, splitted_variant_line))
-        variant_chrom = my_variant['Chromosome']
-        if variant_chrom.startswith('chr') or variant_chrom.startswith('Chr'):
-            variant_chrom = variant_chrom[3:]
-        variant_interval = [int(my_variant['Variant_start']), int(my_variant['Variant_stop'])]
-        features_overlapped = []
+        variant = dict(zip(self.header_line, splitted_variant_line))
         
-        try:
-            features_overlapped = self.interval_trees.interval_trees[variant_chrom].findRange(variant_interval)
-        except KeyError:
-            if self.verbosity:
-                print(('Chromosome', variant_chrom, 'is not in annotation file!'))
+        # Get the genes:
+        features_overlapped = self.get_genes(variant['HGNC_symbol'], 'HGNC')
         
-        return my_variant, features_overlapped
+        variant['Genotypes'] = {}
+        
+        for individual in individuals:
+            try:
+                gt_info = variant['IDN:'+individual].split(':')[1].split('=')[1]
+            except (IndexError, KeyError):
+                if verbose:
+                    print('Warning! Genotype info is missing for individual %s.' % individual)
+                gt_info = './.'
+            
+            variant['Genotypes'][individual] = genotype.Genotype(GT=gt_info)
+        
+        return variant, features_overlapped
     
 
 
@@ -159,7 +182,7 @@ def main():
     start_time = datetime.now()
     my_parser = VariantFileParser(infile, variant_queue, head, annotation_trees, args.verbose)
     my_parser.parse()
-    print(('Time to parse variants: %s' % (datetime.now()-start_time)))
+    # print(('Time to parse variants: %s' % (datetime.now()-start_time)))
 
 if __name__ == '__main__':
     main()

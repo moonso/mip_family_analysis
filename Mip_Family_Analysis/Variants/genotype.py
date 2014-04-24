@@ -44,6 +44,7 @@ Copyright (c) 2013 __MyCompanyName__. All rights reserved.
 import sys
 import os
 
+from datetime import datetime
 
 class Genotype(object):
     """Holds information about a genotype"""
@@ -114,7 +115,13 @@ class Genotype(object):
         return self.allele_1+'/'+self.allele_2
 
 def main():
-    pass
+    genotypes = []
+    start = datetime.now()
+    nr_of_genotypes = 200000
+    for i in range(nr_of_genotypes):
+        Genotype('0/1')
+    print('Time to create %s genotypes: %s' % (str(nr_of_genotypes), str(datetime.now() - start)))
+        
 
 
 if __name__ == '__main__':
