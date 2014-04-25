@@ -22,45 +22,42 @@ from pprint import pprint as pp
 from Mip_Family_Analysis.Utils import is_number
 
 
-consequenceSeverity = {}
+consequence_severity = {}
 # This is the rank scores for the different consequences that VEP uses:
-consequenceSeverity['transcript_ablation'] = 3
-consequenceSeverity['splice_donor_variant'] = 3
-consequenceSeverity['splice_acceptor_variant'] = 3
-consequenceSeverity['stop_gained'] = 3;
-consequenceSeverity['frameshift_variant'] = 3
-consequenceSeverity['stop_lost'] = 3
-consequenceSeverity['initiator_codon_variant'] = 3
-consequenceSeverity['inframe_insertion'] = 2
-consequenceSeverity['inframe_deletion'] = 2
-consequenceSeverity['missense_variant'] = 2
-consequenceSeverity['transcript_amplification'] = 2
-consequenceSeverity['splice_region_variant'] = 2
-consequenceSeverity['incomplete_terminal_codon_variant'] = 2
-consequenceSeverity['synonymous_variant'] = 1
-consequenceSeverity['stop_retained_variant'] = 1
-consequenceSeverity['coding_sequence_variant'] = 1
-consequenceSeverity['mature_miRNA_variant'] = 1
-consequenceSeverity['5_prime_UTR_variant'] = 1
-consequenceSeverity['3_prime_UTR_variant'] = 1
-consequenceSeverity['non_coding_exon_variant'] = 1
-consequenceSeverity['nc_transcript_variant'] = 1
-consequenceSeverity['intron_variant'] = 1
-consequenceSeverity['NMD_transcript_variant'] = 1
-consequenceSeverity['upstream_gene_variant'] = 1
-consequenceSeverity['downstream_gene_variant'] = 1
-consequenceSeverity['TFBS_ablation'] = 1
-consequenceSeverity['TFBS_amplification'] = 1
-consequenceSeverity['TF_binding_site_variant'] = 1
-consequenceSeverity['regulatory_region_variant'] = 1
-consequenceSeverity['regulatory_region_ablation'] = 1
-consequenceSeverity['regulatory_region_amplification'] = 1
-consequenceSeverity['feature_elongation'] = 1
-consequenceSeverity['feature_truncation'] = 1
-consequenceSeverity['intergenic_variant'] = 0
-
-
-
+consequence_severity['transcript_ablation'] = 5
+consequence_severity['splice_donor_variant'] = 5
+consequence_severity['splice_acceptor_variant'] = 5
+consequence_severity['stop_gained'] = 5
+consequence_severity['frameshift_variant'] = 5
+consequence_severity['stop_lost'] = 5
+consequence_severity['initiator_codon_variant'] = 5
+consequence_severity['inframe_insertion'] = 3
+consequence_severity['inframe_deletion'] = 3
+consequence_severity['missense_variant'] = 3
+consequence_severity['transcript_amplification'] = 3
+consequence_severity['splice_region_variant'] = 3
+consequence_severity['incomplete_terminal_codon_variant'] = 3
+consequence_severity['synonymous_variant'] = 1
+consequence_severity['stop_retained_variant'] = 1
+consequence_severity['coding_sequence_variant'] = 1
+consequence_severity['mature_miRNA_variant'] = 1
+consequence_severity['5_prime_UTR_variant'] = 1
+consequence_severity['3_prime_UTR_variant'] = 1
+consequence_severity['non_coding_exon_variant'] = 1
+consequence_severity['nc_transcript_variant'] = 1
+consequence_severity['intron_variant'] = 1
+consequence_severity['NMD_transcript_variant'] = 1
+consequence_severity['upstream_gene_variant'] = 1
+consequence_severity['downstream_gene_variant'] = 1
+consequence_severity['TFBS_ablation'] = 1
+consequence_severity['TFBS_amplification'] = 1
+consequence_severity['TF_binding_site_variant'] = 1
+consequence_severity['regulatory_region_variant'] = 1
+consequence_severity['regulatory_region_ablation'] = 1
+consequence_severity['regulatory_region_amplification'] = 1
+consequence_severity['feature_elongation'] = 1
+consequence_severity['feature_truncation'] = 1
+consequence_severity['intergenic_variant'] = 0
 
 
 def get_genetic_models(model_dict):
@@ -82,10 +79,11 @@ def score_variant(variants, prefered_models = []):
         score = 0
         # Models of inheritance
         variant_models = get_genetic_models(variant.get('Inheritance_model', {}))
-    
+        
         # Predictors
         mutation_taster = variant.get('Mutation_taster', None)
         avsift = variant.get('SIFT', None)
+        
         if 'Poly_phen_hdiv' in variant:
             poly_phen = variant.get('Poly_phen_hdiv', None)
         else:
@@ -98,7 +96,6 @@ def score_variant(variants, prefered_models = []):
                 functional_annotation = {gene_info.split(':')[0]:gene_info.split(':')[1] for gene_info in functional_annotation.split(',')}
             except IndexError:
                 functional_annotation = None
-        gene_annotation = variant.get('Gene_annotation', None)
         
         # Frequency in databases:
         thousand_genomes_frequency = variant.get('1000G', None)
@@ -129,7 +126,6 @@ def score_variant(variants, prefered_models = []):
         score += check_inheritance(variant_models, prefered_models)
         score += check_predictions(mutation_taster, avsift, poly_phen)
         score += check_functional_annotation(functional_annotation)
-        score += check_gene_annotation(gene_annotation)
         score += check_frequency_score(thousand_genomes_frequency, dbsnp_frequency, hbvdb, dbsnp_id)
         score += check_filter(filt)
         score += check_region_conservation(mce64way, gerp_region)
@@ -175,19 +171,10 @@ def check_functional_annotation(functional_annotation = None):
     functional_annotation_score = 0
     if functional_annotation:
         for gene in functional_annotation:
-            score = consequenceSeverity.get(functional_annotation[gene],0)
+            score = consequence_severity.get(functional_annotation[gene],0)
             if score > functional_annotation_score:
                 functional_annotation_score = score
     return functional_annotation_score
-    
-def check_gene_annotation(gene_annotation = None):
-    """Score the variant based onits gene annotation."""
-    gene_annotation_score = 0
-    if gene_annotation in ['exonic', 'exonic;splicing',  'splicing']:
-        gene_annotation_score += 3
-    elif gene_annotation in ['intronic', 'UTR3', 'UTR5', 'UTR5;UTR3', 'upstream', 'downstream', 'upstream;downstream']:
-        gene_annotation_score += 1
-    return gene_annotation_score
     
 def check_frequency_score(thousand_genomes_frequency = None, dbsnp_frequency = None, hbvdb_frequency = None, dbsnp_id = None):
     """Score the variant based on the frequency in population."""
