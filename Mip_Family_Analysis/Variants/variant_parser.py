@@ -148,8 +148,6 @@ class VariantFileParser(object):
             try:
                 gt_info = variant['IDN:'+individual].split(':')[1].split('=')[1]
             except (IndexError, KeyError):
-                if verbose:
-                    print('Warning! Genotype info is missing for individual %s.' % individual)
                 gt_info = './.'
             
             variant['Genotypes'][individual] = genotype.Genotype(GT=gt_info)
