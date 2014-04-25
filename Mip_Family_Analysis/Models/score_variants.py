@@ -17,7 +17,51 @@ Copyright (c) 2013 __MyCompanyName__. All rights reserved.
 import sys
 import os
 
+from pprint import pprint as pp
+
 from Mip_Family_Analysis.Utils import is_number
+
+
+consequenceSeverity = {}
+# This is the rank scores for the different consequences that VEP uses:
+consequenceSeverity['transcript_ablation'] = 3
+consequenceSeverity['splice_donor_variant'] = 3
+consequenceSeverity['splice_acceptor_variant'] = 3
+consequenceSeverity['stop_gained'] = 3;
+consequenceSeverity['frameshift_variant'] = 3
+consequenceSeverity['stop_lost'] = 3
+consequenceSeverity['initiator_codon_variant'] = 3
+consequenceSeverity['inframe_insertion'] = 2
+consequenceSeverity['inframe_deletion'] = 2
+consequenceSeverity['missense_variant'] = 2
+consequenceSeverity['transcript_amplification'] = 2
+consequenceSeverity['splice_region_variant'] = 2
+consequenceSeverity['incomplete_terminal_codon_variant'] = 2
+consequenceSeverity['synonymous_variant'] = 1
+consequenceSeverity['stop_retained_variant'] = 1
+consequenceSeverity['coding_sequence_variant'] = 1
+consequenceSeverity['mature_miRNA_variant'] = 1
+consequenceSeverity['5_prime_UTR_variant'] = 1
+consequenceSeverity['3_prime_UTR_variant'] = 1
+consequenceSeverity['non_coding_exon_variant'] = 1
+consequenceSeverity['nc_transcript_variant'] = 1
+consequenceSeverity['intron_variant'] = 1
+consequenceSeverity['NMD_transcript_variant'] = 1
+consequenceSeverity['upstream_gene_variant'] = 1
+consequenceSeverity['downstream_gene_variant'] = 1
+consequenceSeverity['TFBS_ablation'] = 1
+consequenceSeverity['TFBS_amplification'] = 1
+consequenceSeverity['TF_binding_site_variant'] = 1
+consequenceSeverity['regulatory_region_variant'] = 1
+consequenceSeverity['regulatory_region_ablation'] = 1
+consequenceSeverity['regulatory_region_amplification'] = 1
+consequenceSeverity['feature_elongation'] = 1
+consequenceSeverity['feature_truncation'] = 1
+consequenceSeverity['intergenic_variant'] = 0
+
+
+
+
 
 def get_genetic_models(model_dict):
     """return a list with the genetic models followed"""
@@ -49,6 +93,9 @@ def score_variant(variants, prefered_models = []):
         
         # Annotations:
         functional_annotation = variant.get('Functional_annotation', None)
+        if functional_annotation:
+            functional_annotation = {gene_info.split(':')[0]:gene_info.split(':')[1] for gene_info in functional_annotation.split(',')}
+        
         gene_annotation = variant.get('Gene_annotation', None)
         
         # Frequency in databases:
@@ -124,10 +171,11 @@ def check_predictions(mutation_taster = None, avsift = None, poly_phen = None):
 def check_functional_annotation(functional_annotation = None):
     """Score the variant based on its functional annotation"""
     functional_annotation_score = 0
-    if functional_annotation in ['frameshift deletion', 'frameshift insertion', 'nonframeshift deletion', 'nonframeshift insertion', 'stopgain SNV', 'stoploss SNV', 'nonsynonymous SNV']:
-        functional_annotation_score += 3
-    elif functional_annotation in ['unknown', 'synonymous SNV']:
-        functional_annotation_score += 1
+    if functional_annotation:
+        for gene in functional_annotation:
+            score = consequenceSeverity.get(functional_annotation[gene],0)
+            if score > functional_annotation_score:
+                functional_annotation_score = score
     return functional_annotation_score
     
 def check_gene_annotation(gene_annotation = None):
