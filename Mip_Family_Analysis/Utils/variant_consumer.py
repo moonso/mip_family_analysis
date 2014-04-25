@@ -107,7 +107,7 @@ class VariantConsumer(multiprocessing.Process):
                 if self.verbosity:
                     print('%s: Exiting' % proc_name)
                 break
-            genetic_models.check_genetic_models(next_batch, self.family, self.verbosity, proc_name)
+            genetic_models.check_genetic_models(next_batch, self.family, self.verbosity, proc_name = proc_name)
             fixed_variants = self.fix_variants(next_batch)
             score_variants.score_variant(fixed_variants, self.family.models_of_inheritance)
             self.make_print_version(fixed_variants)
