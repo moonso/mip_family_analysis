@@ -94,8 +94,10 @@ def score_variant(variants, prefered_models = []):
         # Annotations:
         functional_annotation = variant.get('Functional_annotation', None)
         if functional_annotation:
-            functional_annotation = {gene_info.split(':')[0]:gene_info.split(':')[1] for gene_info in functional_annotation.split(',')}
-        
+            try:
+                functional_annotation = {gene_info.split(':')[0]:gene_info.split(':')[1] for gene_info in functional_annotation.split(',')}
+            except IndexError:
+                functional_annotation = None
         gene_annotation = variant.get('Gene_annotation', None)
         
         # Frequency in databases:
