@@ -125,7 +125,7 @@ def check_compound_candidates(variants, family):
                 comp_candidates.pop(variant_id,0)
             # If an individual is affected:
             else:
-                if family.individuals[individual].affected():
+                if family.individuals[individual].affected:
                     # It has to be heterozygote for the variant to be a candidate
                     if not individual_genotype.heterozygote:
                         comp_candidates.pop(variant_id, 0)
@@ -133,7 +133,7 @@ def check_compound_candidates(variants, family):
                         individual_variants[variant_id] = ''
         #If the individual is sick then all potential compound candidates of a gene must exist in that individual.
         #So we remove all variants that the sick individual don't have
-        if family.individuals[individual].affected():
+        if family.individuals[individual].affected:
             if len(individual_variants) > 1:
                 for variant_id in comp_candidates:
                     if variant_id not in individual_variants:
@@ -248,7 +248,7 @@ def check_X_recessive(variant, family):
         individual_genotype = variant['Genotypes'].get(individual, genotype.Genotype())
         
         # The case where the individual is healthy
-        if not family.individuals[individual].affected():
+        if not family.individuals[individual].affected:
         # If individual is healthy and homozygote alternative the variant can not be deleterious:
             if individual_genotype.homo_alt:
                 variant['Inheritance_model']['XR'] = False
@@ -263,7 +263,7 @@ def check_X_recessive(variant, family):
                     return
     
         # The case when the individual is sick
-        elif family.individuals[individual].affected():
+        elif family.individuals[individual].affected:
         #If the individual is sick and homozygote ref it can not be x-recessive
             if individual_genotype.homo_ref:
                 variant['Inheritance_model']['XR'] = False
@@ -286,7 +286,7 @@ def check_X_dominant(variant, family):
         # Get the genotype for this variant for this individual
         individual_genotype = variant['Genotypes'].get(individual, genotype.Genotype())
         # The case where the individual is healthy
-        if not family.individuals[individual].affected():
+        if not family.individuals[individual].affected:
         # Healthy womans can be carriers but not homozygote:
             if family.individuals[individual].sex == 2:
                 if individual_genotype.homo_alt:
@@ -300,7 +300,7 @@ def check_X_dominant(variant, family):
                     variant['Inheritance_model']['XD_dn'] = False
                     return
         # The case when the individual is sick
-        elif family.individuals[individual].affected():
+        elif family.individuals[individual].affected:
         #If the individual is sick and homozygote ref it can not be x-linked-dominant
             if individual_genotype.homo_ref:
                 variant['Inheritance_model']['XD'] = False
